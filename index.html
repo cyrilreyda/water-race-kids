@@ -924,7 +924,7 @@ function pennantBody(id){
   // line — тонка сіра рамка для білого полотнища, щоб його було видно на білій кнопці
   const bg = (c, line) => `<path d="${PENNANT_SHAPE}" fill="${c}"${line ? ' stroke="#9AA3B5" stroke-width=".5"' : ''}/>`;
   switch(id){
-    case 'sun':     return bg('#2D9CDB') + `<circle cx="7" cy="4.5" r="2.6" fill="#FFC93C"/>`;
+    case 'sun':     return bg('#00E0C6') + `<circle cx="7" cy="4.5" r="2.6" fill="#FFC93C"/>`;
     case 'wave':    return bg('#fff', true) + `<path d="M1.5 5.2 Q3.2 3.2 5 5.2 T8.5 5.2 T12.5 5.2" stroke="#2D9CDB" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
     case 'fish':    return bg('#16A3A0') + `<path d="M3 4.5 Q6.5 1.6 10 4.5 Q6.5 7.4 3 4.5 Z M10 4.5 L12.6 2.6 V6.4 Z" fill="#FFC93C"/><circle cx="5" cy="4.1" r=".6" fill="#1B1B3A"/>`;
     case 'star':    return bg('#3FA66B') + star(7, 4.7, 3.2, '#FFC93C');
