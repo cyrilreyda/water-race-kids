@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FD3FF"/><stop offset="1" stop-color="#E3F5FF"/></linearGradient></defs>
+  <rect width="96" height="96" rx="20" fill="url(#sky)"/>
+  <g fill="#fff"><ellipse cx="74" cy="20" rx="12" ry="4.5"/><ellipse cx="68" cy="17" rx="6" ry="4.5"/><ellipse cx="18" cy="62" rx="10" ry="3.8"/></g>
+  <path d="M0 80 Q30 70 56 78 T96 76 V76 96 H0 Z" fill="#7CC47F"/>
+  <!-- куля робота: менша, позаду -->
+  <g transform="translate(58 30) scale(.5)">
+    <path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#6C5CE7"/>
+    <path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/>
+    <path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#6C5CE7"/>
+    <path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/>
+    <rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/>
+  </g>
+  <!-- куля учня -->
+  <g transform="translate(12 6) scale(.95)">
+    <path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#FF6B4A"/>
+    <path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/>
+    <path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#FF6B4A"/>
+    <path d="M15 14 Q19 7 26 5.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".45"/>
+    <path d="M30 50 Q34 55.5 30 59.5 Q26 55.5 30 50 Z" fill="#FFB020"/>
+    <path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1"/>
+    <rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/>
+    <path d="M21 72.5 H39 M21 76.5 H39" stroke="#8E5F28" stroke-width="1"/>
+    <rect x="20" y="67" width="20" height="2.6" rx="1.3" fill="#8E5F28"/>
+  </g>
+</svg>

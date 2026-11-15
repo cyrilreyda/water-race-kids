@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Як грати · Повітряні перегони</title>
+<link href="../fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<style>
+  :root{
+    --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
+    --purple:#6C5CE7; --purple-dark:#5340c9; --teal:#16A3A0; --teal-dark:#0E7C7A; --coral:#FF6B4A;
+    --yellow:#FFC93C; --pink:#FF5D9E; --blue:#2D9CDB;
+    --radius-s:10px; --radius-m:16px; --radius-l:26px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Nunito Sans',sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Baloo 2',sans-serif; font-weight:700; margin:0; color:var(--ink); line-height:1.25;}
+  .container{max-width:860px; margin:0 auto; padding:0 16px;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{position:sticky; top:0; z-index:10; background:rgba(246,245,251,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line);}
+  .topbar-inner{max-width:860px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px;}
+  .back-link{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--teal-dark); text-decoration:none; white-space:nowrap;}
+  .back-link:hover{text-decoration:underline;}
+  .play-link{margin-left:auto; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; text-decoration:none; background:var(--teal); color:#fff; border-radius:999px; padding:4px 16px; white-space:nowrap;}
+  .play-link:hover{background:var(--teal-dark);}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:28px 0 6px;}
+  .eyebrow{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--teal-dark);}
+  .hero h1{font-size:32px; margin:2px 0 4px;}
+  .hero p{margin:0; color:var(--ink-soft); font-size:17px;}
+  @media (max-width:600px){ .hero h1{font-size:26px;} }
+
+  /* ---------- Кроки ---------- */
+  .steps{list-style:none; margin:20px 0 0; padding:0; display:grid; gap:14px;}
+  .step{display:grid; grid-template-columns:44px 1fr 300px; gap:16px; align-items:center; background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-l); padding:18px 20px;}
+  .step.no-pic{grid-template-columns:auto 1fr;}
+  .step.key{border:2px solid var(--teal); box-shadow:0 5px 0 #D2F0EF;}
+  .num{width:44px; height:44px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; align-self:start;}
+  .step h2{font-size:20px; margin-bottom:2px;}
+  .step p{margin:0; color:var(--ink-soft); font-size:15px;}
+  .step p + p{margin-top:4px;}
+  @media (max-width:720px){
+    .step{grid-template-columns:36px 1fr; gap:10px 12px; padding:14px;}
+    .num{width:36px; height:36px; font-size:18px;}
+    .pic{grid-column:1 / -1;}
+  }
+
+  /* Елементи інтерфейсу гри */
+  .ui{display:inline-flex; align-items:center; gap:4px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; line-height:1.3; white-space:nowrap; vertical-align:1px;
+    border:1.5px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; padding:1px 10px;}
+  .ui.primary{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .kbd{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px; background:var(--surface); border:1.5px solid var(--line); border-bottom-width:3px; border-radius:7px; padding:0 7px;}
+  .ico{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line); background:var(--surface); color:var(--teal-dark); vertical-align:-9px;}
+  .ico svg{width:21px; height:21px;}
+  .ico.hl{border-color:var(--teal); box-shadow:0 0 0 3px #9FE0DE;}
+
+  /* ---------- Ілюстрації ---------- */
+  .pic{background:var(--bg); border-radius:var(--radius-m); padding:14px; font-size:14px; position:relative; overflow:hidden;}
+  .pic .cap{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; text-align:center; line-height:1.2;}
+  .pic .sub{text-align:center; color:var(--ink-soft); font-size:12.5px;}
+
+
+  /* 2 · ім'я */
+  .dlg{background:var(--surface); border-radius:var(--radius-m); padding:12px; box-shadow:0 6px 18px rgba(27,27,58,.12);}
+  .dlg .wave{font-size:28px; text-align:center; line-height:1;}
+  .chips{display:flex; gap:6px; justify-content:center; margin:8px 0;}
+  .chips span{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; border:1.5px solid var(--teal); color:var(--teal-dark); border-radius:999px; padding:0 10px;}
+  .field{display:flex; gap:6px;}
+  .field .in{flex:1; border:1.5px solid var(--teal); border-radius:999px; padding:3px 12px; font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden;}
+  .field .in::after{content:"|"; color:var(--teal); animation:blink 1s steps(1) infinite; margin-left:1px;}
+  @keyframes blink{50%{opacity:0;}}
+
+  /* 3 · небо */
+  .mini-sky{height:100px; border-radius:12px; overflow:hidden; position:relative; background:linear-gradient(#8FD3FF, #E3F5FF);}
+  .mini-sky::after{content:""; position:absolute; left:0; right:0; bottom:0; height:16px; background:#7CC47F;}
+  .mini-sky .bal{position:absolute; width:30px; left:16%; bottom:30px;}
+  .mini-sky .bal svg{display:block; width:100%; height:auto;}
+  .mini-sky .bal.bot{width:22px; left:34%; bottom:46px;}
+  .mini-sky .bal small{position:absolute; left:50%; top:100%; transform:translateX(-50%); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:10px; background:#fff; border-radius:999px; padding:0 5px; white-space:nowrap;}
+  .mini-sky .go{position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end; padding-right:16px; z-index:1;}
+  .mini-sky .go span{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; background:var(--teal); color:#fff; border-radius:999px; padding:5px 16px; box-shadow:0 3px 0 var(--teal-dark), 0 8px 18px rgba(27,27,58,.3);}
+  .mini-sky .timer{position:absolute; top:6px; right:8px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px; background:#fff; border-radius:999px; padding:0 10px;}
+  /* куля учня то піднімається, поки друкуєш, то опускається, коли зупинився */
+  .fly{animation:fly 4s ease-in-out infinite;}
+  @keyframes fly{0%,100%{bottom:46px;} 55%{bottom:46px;} 85%{bottom:16px;}}
+  .mini-sky .fly{left:46%;}
+  .mini-sky .fly.bot{animation:fly-bot 4s ease-in-out infinite; left:20%;}
+  @keyframes fly-bot{0%,100%{bottom:50px;} 50%{bottom:54px;}}
+
+  /* 4 · друк */
+  .typing{background:#FBFAFE; border:1.5px solid var(--line); border-radius:12px; padding:8px 10px; font-size:19px; font-weight:700; letter-spacing:.5px;}
+  .typing .ok{color:var(--teal-dark); opacity:.55;}
+  .typing .cur{background:var(--yellow); border-radius:4px; padding:0 2px; box-shadow:0 0 0 2px var(--yellow);}
+  .rules{display:flex; gap:6px; justify-content:center; margin-top:8px; flex-wrap:wrap;}
+  .rules span{background:var(--surface); border-radius:999px; padding:1px 10px; font-weight:700; font-size:12.5px;}
+
+  /* 5 · етапи */
+  .stages{display:grid; gap:5px;}
+  .stages div{display:flex; justify-content:space-between; align-items:center; background:var(--surface); border-radius:9px; padding:4px 10px; font-weight:700; font-size:13px;}
+  .stages .done{color:#16803C;}
+  .stages b{font-family:'Baloo 2',sans-serif;}
+  .medal{text-align:center; font-size:34px; line-height:1; margin-top:8px;}
+
+  /* 6 · копіювання */
+  .final{position:relative; border:2px dashed var(--yellow); background:#FFFBEF; border-radius:12px; padding:10px 54px 10px 12px; font-size:13px; text-align:left;}
+  .final b{font-family:'Baloo 2',sans-serif; font-size:14.5px;}
+  .final .ico{position:absolute; top:50%; right:10px; transform:translateY(-50%);}
+  .tap{position:absolute; right:-2px; top:calc(50% + 8px); width:22px; animation:tap 1.4s ease infinite;}
+  @keyframes tap{0%,100%{transform:translate(0,0);} 50%{transform:translate(-3px,-4px);}}
+  .toast{margin:10px auto 0; width:max-content; max-width:100%; background:var(--ink); color:#fff; border-radius:999px; padding:3px 14px; font-weight:700; font-size:12.5px;}
+  .toast::before{content:"✓ "; color:#7BE3A8;}
+
+  footer{margin:36px 0 30px; text-align:center; font-size:13.5px; color:var(--ink-soft);}
+
+  @media (prefers-reduced-motion:reduce){ .fly, .tap, .field .in::after{animation:none;} }
+  @media print{
+    body{background:#fff;}
+    .topbar{display:none;}
+    .step{break-inside:avoid; box-shadow:none;}
+  }
+  .emo{display:inline-block; width:1.15em; height:1.15em; vertical-align:-.2em;}   /* картинка замість емодзі (листок каштана) */
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="back-link" href="../index.html">← До перегонів</a>
+  <a class="play-link" href="../index.html">🎈 Грати</a>
+</div></div>
+
+<main class="container">
+
+  <header class="hero">
+    <div class="eyebrow">Повітряні перегони · Інструкція</div>
+    <h1>Як пройти змагання й надіслати результат</h1>
+    <p>Сім кроків — від посилання на змагання до твоєї медалі.</p>
+  </header>
+
+  <ol class="steps">
+
+    <!-- 1 -->
+    <li class="step no-pic">
+      <span class="num">1</span>
+      <div>
+        <h2>Перейди за посиланням</h2>
+        <p>Клацни посилання на змагання, яке ти отримав.</p>
+      </div>
+    </li>
+
+    <!-- 2 -->
+    <li class="step">
+      <span class="num">2</span>
+      <div>
+        <h2>Введи ім'я, якщо гра попросить</h2>
+        <p>Придумай ім'я гравця й натисни <span class="ui primary">Почати</span>. Уже грав? Просто обери себе у списку.</p>
+      </div>
+      <div class="pic" aria-hidden="true">
+        <div class="dlg">
+          <div class="wave">👋</div>
+          <div class="cap">Привіт! Як тебе звати?</div>
+          <div class="chips"><span>Хмаринка</span><span>Вітерець</span></div>
+          <div class="field"><span class="in">Супер Пілот</span><span class="ui primary">Почати</span></div>
+        </div>
+      </div>
+    </li>
+
+    <!-- 3 -->
+    <li class="step">
+      <span class="num">3</span>
+      <div>
+        <h2>Натисни «На старт!»</h2>
+        <p>Гра одразу відкриє змагання з посилання. Тисни <span class="ui primary">🎈 На старт!</span> над небом регіону.</p>
+      </div>
+      <div class="pic" aria-hidden="true">
+        <div class="mini-sky">
+          <span class="bal bot"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#6C5CE7"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#6C5CE7"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg><small>🤖 Робот</small></span>
+          <span class="bal"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#FF6B4A"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#FF6B4A"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg><small>Ти</small></span>
+          <div class="go"><span>🎈 На старт!</span></div>
+        </div>
+      </div>
+    </li>
+
+    <!-- 4 -->
+    <li class="step">
+      <span class="num">4</span>
+      <div>
+        <h2>Друкуй хвилину й пролети далі за робота</h2>
+        <p>Натискай жовту літеру: кожна правильна літера несе кулю вперед і підігріває пальник. Політ триває хвилину. Етап зараховано, якщо твоя куля пролетіла далі за робота і помилок мало.</p>
+        <p>Зупинишся чи друкуватимеш надто повільно — куля почне знижуватись. Торкнулась землі — політ закінчено.</p>
+        <p>Не вийшло — тисни <span class="ui">↻ Ще раз</span>.</p>
+        <p>Внизу головної сторінки — наліпки за досягнення. Сіра наліпка, що вже трохи зафарбована, збирається за кілька польотів: під нею видно, скільки зібрано. Клацни наліпку — і дізнаєшся, як її отримати.</p>
+      </div>
+      <div class="pic" aria-hidden="true">
+        <div class="mini-sky" style="margin-bottom:8px">
+          <span class="timer">0:42 🏁</span>
+          <span class="bal fly"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#FF6B4A"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#FF6B4A"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg></span>
+          <span class="bal fly bot"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#6C5CE7"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#6C5CE7"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg></span>
+        </div>
+        <div class="typing"><span class="ok">мама мила </span><span class="cur">р</span>аму</div>
+        <div class="rules"><span>🎈 далі за робота</span><span>⬆️ не сідай на землю</span><span>🎯 мало помилок</span></div>
+      </div>
+    </li>
+
+    <!-- 5 -->
+    <li class="step">
+      <span class="num">5</span>
+      <div>
+        <h2>Пройди всі етапи</h2>
+        <p>Після кожного етапу тисни <span class="ui">▶ Далі</span>. Коли пройдеш останній, отримаєш медаль.</p>
+      </div>
+      <div class="pic" aria-hidden="true">
+        <div class="stages">
+          <div class="done"><span>1 · <svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/><g transform="rotate(-86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(-43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(0 12 14) translate(12 14) scale(1) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g></svg> Київщина</span><b>✓ Перемога</b></div>
+          <div class="done"><span>2 · <svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/><g transform="rotate(-86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(-43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(0 12 14) translate(12 14) scale(1) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g></svg> Київщина</span><b>✓ Перемога</b></div>
+          <div class="done"><span>3 · <svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/><g transform="rotate(-86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(-43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(0 12 14) translate(12 14) scale(1) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g></svg> Київщина</span><b>✓ Перемога</b></div>
+        </div>
+        <div class="medal">🥇🥈🥉</div>
+      </div>
+    </li>
+
+    <!-- 6 -->
+    <li class="step key">
+      <span class="num">6</span>
+      <div>
+        <h2>Скопіюй посилання на результати</h2>
+        <p>У вікні перемоги або в правому верхньому куті картки змагання натисни ланцюжок <span class="ico hl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M10 7.5H7a4.5 4.5 0 0 0 0 9h3"/><path d="M14 7.5h3a4.5 4.5 0 0 1 0 9h-3"/><path d="M8.5 12h7"/></svg></span>.</p>
+      </div>
+      <div class="pic" aria-hidden="true">
+        <div class="final">
+          <b>🏆 «Кубок Києва» завершено: 🥇 Золото!</b><br>Середня точність: 98%
+          <span class="ico hl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 7.5H7a4.5 4.5 0 0 0 0 9h3"/><path d="M14 7.5h3a4.5 4.5 0 0 1 0 9h-3"/><path d="M8.5 12h7"/></svg></span>
+          <svg class="tap" viewBox="0 0 24 24"><path d="M5 2 L5 19 L9.5 15 L12.5 22 L15.5 20.6 L12.6 14 L18.5 14 Z" fill="#fff" stroke="#1B1B3A" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="toast">Посилання скопійоване</div>
+      </div>
+    </li>
+
+    <!-- 7 -->
+    <li class="step key no-pic">
+      <span class="num">7</span>
+      <div>
+        <h2>Встав посилання й поділися</h2>
+        <p>Натисни <span class="kbd">Ctrl</span> + <span class="kbd">V</span> у повідомленні й надішли.</p>
+      </div>
+    </li>
+
+  </ol>
+
+  <footer>Повітряні перегони · Інструкція · за мотивами <a href="https://cyrilreyda.github.io/typing-race-kids/">«Клавіатурних перегонів»</a></footer>
+</main>
+
+<script>
+// Офлайн: обробник sw.js зберігає гру в браузері, щоб вона відкривалась без інтернету.
+// Працює лише на сайті (http/https); з папки (file://) гра й так відкривається без мережі
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('../sw.js').catch(()=>{});
+</script>
+</body>
+</html>

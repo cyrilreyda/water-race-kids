@@ -1,0 +1,2845 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Повітряні перегони · Інформатика в 131-й</title>
+<link href="fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
+<link rel="manifest" href="manifest.webmanifest">   <!-- гру можна встановити як програму -->
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#16A3A0">
+<script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
+<style>
+  :root{
+    --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
+    --purple:#6C5CE7; --purple-dark:#5340c9; --teal:#16A3A0; --teal-dark:#0E7C7A; --coral:#FF6B4A;
+    --yellow:#FFC93C; --pink:#FF5D9E; --blue:#2D9CDB;
+    --radius-s:10px; --radius-m:16px; --radius-l:26px;
+    /* Пальці: мізинець, безіменний, середній, вказівний (дзеркально для обох рук) */
+    --f-pinky:#FFE0EC; --f-ring:#FFF1C9; --f-middle:#D9F3F2; --f-index:#E6E2FF; --f-thumb:#ECEBF3;
+    --bal-w:66px; --sky-h:290px; --ground-h:88px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Nunito Sans',sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Baloo 2',sans-serif; font-weight:700; margin:0; color:var(--ink);}
+  button{font:inherit;}
+  [hidden]{display:none !important;}
+  .container{max-width:980px; margin:0 auto; padding:0 16px;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{position:sticky; top:0; z-index:10; background:rgba(246,245,251,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line);}
+  .topbar-inner{max-width:980px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px;}
+  .back-link{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--teal-dark); text-decoration:none; white-space:nowrap;}
+  .back-link:hover{text-decoration:underline;}
+  .game-title{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .top-btn{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; border:1.5px solid var(--teal); background:var(--surface); color:var(--teal-dark); border-radius:999px; padding:4px 14px; cursor:pointer; white-space:nowrap;}
+  .top-btn:hover{background:#E3F7F6;}
+  a.top-btn{text-decoration:none;}
+  @media (max-width:380px){ .topbar-inner{gap:6px; padding:10px 12px;} .back-link{font-size:13px;} .top-btn{padding:3px 9px;} }
+  @media (max-width:640px){ .game-title{display:none;} .top-btn .long{display:none;} .top-btn{padding:4px 11px;} .topbar-inner{gap:8px;} }
+  /* Повний екран: стрілки від центру — розгорнути, до центру — згорнути */
+  .fs-btn{align-self:stretch; display:flex; align-items:center; padding:0 9px;}
+  .fs-btn svg{width:20px; height:20px;}
+  .fs-btn[hidden], .fs-btn .fs-off, .fs-btn.full .fs-on{display:none;}
+  .fs-btn.full .fs-off{display:block;}
+  @media (max-width:640px){ .fs-btn{padding:0 8px;} }
+
+  main{padding:16px 0 40px;}
+
+  /* ---------- Небо ---------- */
+  /* Сцена: небо регіону, хмари й земля з краєвидом. Під час польоту камера летить за кулею учня:
+     земля й хмари прокручуються, робот — попереду чи позаду, висоту куль задає --h (0 — земля) */
+  .track{margin-top:8px; position:relative; height:var(--sky-h); border-radius:var(--radius-l); overflow:hidden;
+    background:linear-gradient(180deg, var(--sky1, #8FD3FF), var(--sky2, #E3F5FF));}
+  .track.compact .track-name{display:none;}
+  .track-name{position:absolute; top:10px; left:12px; z-index:4; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; line-height:1; padding:5px 11px 4px; border-radius:999px; background:rgba(255,255,255,.9); color:var(--ink);}
+  .clouds{position:absolute; left:0; right:0; top:0; height:calc(100% - var(--ground-h)); background-repeat:repeat-x; background-size:600px auto; background-position:0 6px; opacity:.9;}
+  .ground{position:absolute; left:0; right:0; bottom:0; height:var(--ground-h); z-index:1; background-repeat:repeat-x; background-size:auto 100%; background-position:0 bottom;}
+  /* Стартова щогла: стоїть на землі в точці старту й відпливає ліворуч разом із краєвидом */
+  .mast{position:absolute; bottom:calc(var(--ground-h) * .12); width:4px; height:calc(var(--ground-h) * .9); margin-left:-2px; z-index:1; background:#6E6C8A; border-radius:2px;}
+  .mast::after{content:""; position:absolute; left:4px; top:0; width:26px; height:17px; background:repeating-conic-gradient(#1B1B3A 0 25%, #fff 0 50%) 0 0/8.5px 8.5px; border:1px solid #1B1B3A;}
+
+  /* Ефекти регіонів: сонце, дощ Львова, листя Карпат */
+  .fx{position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:3;}
+  .sun{position:absolute; top:12px; right:70px; width:40px; height:40px; border-radius:50%; background:#FFC93C; box-shadow:0 0 0 8px rgba(255,201,60,.3), 0 0 0 16px rgba(255,201,60,.15);}
+  .flake{position:absolute; top:-8px; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 2px rgba(80,120,160,.5); animation:snow linear infinite;}
+  @keyframes snow{to{transform:translate(-30px, 330px);}}
+  .drop{position:absolute; top:-14px; width:1.5px; height:11px; border-radius:1px; background:rgba(255,255,255,.75); animation:rain linear infinite;}
+  @keyframes rain{to{transform:translate(-14px, 330px);}}
+  .leaf{position:absolute; top:-10px; width:9px; height:6px; border-radius:6px 0; background:#E8A33D; animation:snow linear infinite;}
+
+  /* Повітряні кулі: учня — більша, робота — трохи менша. Ліворуч — --x, висота над землею — --h */
+  .balloon{--bw:var(--bal-w); position:absolute; z-index:2; width:var(--bw); left:var(--x, 30%); margin-left:calc(var(--bw) / -2);
+    bottom:calc(var(--ground-h) * .1 + var(--h, .5) * (var(--sky-h) - var(--ground-h) * .1 - var(--bw) * 1.4 - 8px));}
+  .balloon.bot{--bw:calc(var(--bal-w) * .74); z-index:1;}
+  .balloon.far{opacity:.55;}   /* робот далеко за краєм екрана — притиснутий до краю */
+  .balloon svg{position:relative; display:block; width:100%; height:auto; overflow:visible;}
+  .balloon .tag{position:absolute; top:calc(100% + 2px); left:50%; transform:translateX(-50%); white-space:nowrap;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11.5px; line-height:1; padding:3px 8px 2px; border-radius:999px; background:rgba(255,255,255,.92); color:var(--ink);}
+  .balloon .flame{opacity:0; transition:opacity .25s ease; transform-box:fill-box; transform-origin:50% 100%;}
+  .balloon.burn .flame{opacity:1; animation:flicker .18s ease-in-out infinite alternate;}
+  @keyframes flicker{to{transform:scaleY(1.25) scaleX(.85);}}
+  .balloon.bump svg{animation:bump .3s ease;}
+  @keyframes bump{25%{transform:translate(-3px,1px) rotate(-4deg);} 75%{transform:translate(2px,0) rotate(3deg);}}
+  /* Куля низько: кошик злегка розгойдується, щоб було видно, що треба друкувати */
+  .balloon.low svg{animation:sway 1s ease-in-out infinite;}
+  @keyframes sway{50%{transform:rotate(4deg);}}
+  /* Таймер польоту: скільки секунд до фінішу */
+  .timer{position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:4; display:flex; align-items:center; gap:8px;
+    font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; line-height:1; padding:5px 12px 4px; border-radius:999px; background:rgba(255,255,255,.92); color:var(--ink);}
+  .timer .tbar{width:90px; height:8px; border-radius:999px; background:var(--line); overflow:hidden;}
+  .timer .tbar i{display:block; height:100%; width:var(--t, 0%); background:linear-gradient(90deg, var(--teal), #3DDC84);}
+  .timer.end{color:#C2410C;}
+  @media (max-width:600px){ .timer .tbar{width:50px;} .timer{font-size:15px;} }
+
+  /* Світлофор зворотного відліку */
+  .countdown{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:18px; background:rgba(27,27,58,.35); z-index:3;}
+  .lights{display:flex; gap:8px; background:#1B1B3A; padding:9px 12px; border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,.25);}
+  .lights i{width:26px; height:26px; border-radius:50%; background:#3A3A58;}
+  .lights i.red{background:#FF4D4D; box-shadow:0 0 14px #FF4D4D;}
+  .lights i.yellow{background:var(--yellow); box-shadow:0 0 14px var(--yellow);}
+  .lights i.green{background:#3DDC84; box-shadow:0 0 14px #3DDC84;}
+  .count-num{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:44px; line-height:1; color:#fff; text-shadow:0 3px 0 rgba(0,0,0,.25); min-width:2ch; text-align:center;}
+
+  /* ---------- Панелі ---------- */
+  .panel{background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-l); padding:20px; margin-top:16px;}
+
+  /* Налаштування */
+  .setup-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px 24px;}
+  .opt.full{grid-column:1 / -1;}
+  @media (max-width:700px){ .setup-grid{grid-template-columns:1fr;} }
+  .opt h3{font-size:15px; color:var(--ink-soft); margin-bottom:8px;}
+  .seg{display:flex; flex-wrap:wrap; gap:8px;}
+  .seg button{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14.5px; line-height:1.25; text-align:left; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); padding:8px 14px; border-radius:var(--radius-m); cursor:pointer; transition:all .15s ease;}
+  .seg button small{display:block; font-family:'Nunito Sans',sans-serif; font-weight:600; font-size:12px; color:var(--ink-soft);}
+  .seg button:hover:not(:disabled){border-color:var(--teal);}
+  .seg button.on{background:#E3F7F6; border-color:var(--teal); box-shadow:inset 0 0 0 1px var(--teal);}
+  .seg button:disabled{opacity:.45; cursor:not-allowed;}
+
+  .cards{display:grid; gap:10px;}
+  .cards.tracks{grid-template-columns:repeat(5, 1fr);}
+  .cards.balloons{grid-template-columns:repeat(6, 1fr);}
+  @media (max-width:700px){ .cards.tracks .label{font-size:13px; padding:6px 2px 2px;} .cards.tracks{grid-template-columns:repeat(3, 1fr);} .cards.balloons{grid-template-columns:repeat(3, 1fr);} }
+  .pick{border:1.5px solid var(--line); background:var(--surface); border-radius:var(--radius-m); padding:0; cursor:pointer; overflow:hidden; text-align:center; transition:all .15s ease;}
+  .pick:hover:not(:disabled){border-color:var(--teal); transform:translateY(-2px);}
+  .pick.on{border-color:var(--teal); box-shadow:0 0 0 2px var(--teal);}
+  .pick:disabled{cursor:not-allowed;}
+  .pick .label{display:block; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14.5px; line-height:1.2; padding:7px 6px 2px;}
+  .pick small{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); line-height:1.25; padding:0 6px 8px;}
+  /* Мініатюра регіону: небо й земля з краєвидом */
+  .track-prev{height:56px; background:var(--g) left bottom/auto 72% repeat-x, linear-gradient(180deg, var(--s1), var(--s2));}
+  .pick:disabled .track-prev{filter:grayscale(1) opacity(.45);}
+  .pick .bal-prev{display:block; padding:10px 8px 0;}
+  .pick .bal-prev svg{height:84px; width:auto; margin:0 auto; display:block; overflow:visible;}
+  .swatches{display:flex; gap:10px; margin-top:12px;}
+  .swatch{width:34px; height:34px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px var(--line); cursor:pointer; padding:0;}
+  .swatch.on{box-shadow:0 0 0 3px var(--ink);}
+
+  .btn{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; border:none; border-radius:999px; padding:10px 20px; cursor:pointer;}
+  .btn-primary{background:var(--teal); color:#fff;}
+  .btn-primary:hover{background:var(--teal-dark);}
+  .btn-big{font-size:19px; padding:12px 30px; box-shadow:0 4px 0 var(--teal-dark);}
+  .btn-big:active{transform:translateY(2px); box-shadow:0 2px 0 var(--teal-dark);}
+  .btn-ghost{background:var(--bg); color:var(--ink); border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--teal);}
+
+  /* Політ */
+  .race-panel{position:relative; cursor:text;}
+  .stats{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+  .stat{background:var(--bg); border-radius:var(--radius-s); padding:4px 12px; font-size:13px; color:var(--ink-soft);}
+  .stat b{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; color:var(--ink); margin-right:3px;}
+  .text-box{position:relative;
+    font-size:27px; font-weight:600; line-height:1.55; padding:12px 14px; border-radius:var(--radius-m); background:#FBFAFE; border:1.5px solid var(--line); min-height:70px;}
+  /* Видно один рядок тексту — той, що зараз друкується: клавіатуру краще видно, а учень зосереджений на поточних літерах.
+     Наступний рядок з'являється, коли до нього доходить черга. Відступ 3px — щоб не обрізалась підсвітка поточної літери */
+  .text-lines{position:relative; display:flex; flex-wrap:wrap; align-items:baseline; row-gap:4px;
+    max-height:calc(1.55em + 6px); overflow:hidden; padding:3px 2px; margin:-3px -2px;}
+  .lang-flag{display:inline-block; width:1.35em; height:.9em; vertical-align:-.12em; border-radius:2px; overflow:hidden; box-shadow:0 0 0 1px rgba(27,27,58,.15);}
+  .emo{display:inline-block; width:1.15em; height:1.15em; vertical-align:-.2em;}   /* картинка замість емодзі (листок каштана) */
+  .word{white-space:nowrap;}
+  .ch{border-radius:5px; padding:0 1px; transition:background .1s ease;}
+  .ch.sp{display:inline-block; width:.55em;}
+  .ch.ok{color:var(--teal-dark); opacity:.55;}
+  .ch.ok.miss{color:var(--coral); opacity:.8;}
+  .ch.cur{background:var(--yellow); box-shadow:0 0 0 2px var(--yellow);}
+  .ch.err{background:var(--coral); color:#fff; box-shadow:0 0 0 2px var(--coral);}
+
+  .hint{display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin:12px 0 10px; font-size:14px; color:var(--ink-soft); min-height:28px;}
+  .hint .kbd{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; color:var(--ink); background:var(--surface); border:1.5px solid var(--line); border-bottom-width:3px; border-radius:7px; padding:0 9px; min-width:30px; text-align:center;}
+  .hint .dot{width:12px; height:12px; border-radius:50%; display:inline-block; vertical-align:-1px; margin-right:4px; border:1.5px solid rgba(27,27,58,.25);}
+  /* Підказки лежать поверх клавіатури й не змінюють висоту панелі — інакше небо стискалося б посеред польоту */
+  .kb-wrap{position:relative;}
+  .tip{position:absolute; left:50%; top:-6px; z-index:3; transform:translateX(-50%); width:max-content; max-width:calc(100% - 16px); text-align:center;
+    background:#FFF4D6; color:#8A6200; border:2px solid var(--yellow); border-radius:var(--radius-s); padding:8px 16px; font-size:17px; font-weight:800; box-shadow:0 6px 18px rgba(27,27,58,.15);}
+  /* Не та мова чи Caps Lock: картка накриває клавіатуру, доки учень не натисне правильну літеру */
+  .alert{position:absolute; inset:-4px; z-index:4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; text-align:center;
+    background:#FFF1EC; border:3px solid var(--coral); border-radius:var(--radius-m); box-shadow:0 8px 24px rgba(27,27,58,.18);}
+  .alert[hidden]{display:none;}
+  .alert.shake{animation:shake .45s ease;}
+  @keyframes shake{20%,60%{transform:translateX(-8px);} 40%,80%{transform:translateX(8px);}}
+  .alert-title{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(20px, 3.4vw, 28px); line-height:1.2; color:#C2410C;}
+  .alert-row{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; font-size:clamp(15px, 2.4vw, 19px); font-weight:700; color:var(--ink);}
+  .alert-note{font-size:13px; color:var(--ink-soft);}
+  .alert .cap{display:inline-flex; align-items:center; gap:6px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(16px, 2.6vw, 21px); background:#fff; color:var(--ink);
+    border:2px solid var(--ink); border-bottom-width:5px; border-radius:9px; padding:1px 12px; animation:cap-press 1.4s ease-in-out infinite;}
+  @keyframes cap-press{0%,55%,100%{transform:none; border-bottom-width:5px;} 25%,40%{transform:translateY(3px); border-bottom-width:2px; background:var(--yellow);}}
+  .alert .or{font-weight:600; color:var(--ink-soft);}
+  .alert .lamp{width:9px; height:9px; border-radius:50%; background:#3DDC84; box-shadow:0 0 6px #3DDC84;}
+  .lang-bar{display:inline-flex; align-items:center; gap:8px; background:#1B1B3A; color:#fff; border-radius:8px; padding:3px 10px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;}
+  .lang-bar s{opacity:.55;}
+  .lang-bar i{font-style:normal; background:var(--teal); border-radius:5px; padding:0 6px;}
+  /* Пауза, коли сторінка втратила фокус */
+  .pause-note{position:absolute; inset:0; z-index:5; display:none; align-items:center; justify-content:center; border-radius:inherit; background:rgba(27,27,58,.55); cursor:pointer;}
+  .race-panel.unfocused .pause-note{display:flex;}
+  .pause-card{background:var(--surface); border:3px solid var(--yellow); border-radius:var(--radius-l); padding:20px 32px; text-align:center; box-shadow:0 12px 32px rgba(27,27,58,.3); animation:pause-pulse 1.4s ease-in-out infinite;}
+  @keyframes pause-pulse{50%{transform:scale(1.05);}}
+  .pause-ico{font-size:44px; line-height:1;}
+  /* Похвала за серію без помилок: спливає над правим краєм тексту */
+  .praise{position:absolute; right:10px; top:-18px; z-index:2; pointer-events:none; white-space:nowrap;
+    font-family:'Baloo 2',sans-serif; font-weight:800; font-size:20px; color:#fff; background:var(--teal); border:3px solid #fff; border-radius:999px;
+    padding:2px 16px; box-shadow:0 6px 16px rgba(27,27,58,.2); animation:praise 2.2s ease forwards;}
+  @keyframes praise{0%{opacity:0; transform:scale(.4) translateY(10px);} 12%{opacity:1; transform:scale(1.15);} 22%{transform:scale(1);} 80%{opacity:1;} 100%{opacity:0; transform:translateY(-12px);}}
+  .pause-title{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:32px; color:var(--ink);}
+  .pause-text{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:22px; color:var(--teal-dark);}
+
+  /* Екранна клавіатура */
+  .kb{--k:min(50px, calc((100vw - 150px) / 13.5));   /* найширший — нижній ряд: 10 клавіш + 2 Shift по 1.75 */ display:flex; flex-direction:column; align-items:center; gap:5px; user-select:none;}
+  .kb-row{display:flex; gap:5px;}
+  .key{position:relative; width:var(--k); height:calc(var(--k) * .88); border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:calc(var(--k) * .36); color:var(--ink); background:var(--fc, var(--f-thumb));
+    border:1.5px solid rgba(27,27,58,.12); border-bottom-width:3px; transition:transform .08s ease, box-shadow .08s ease;}
+  .key .up{position:absolute; top:1px; left:5px; font-size:calc(var(--k) * .26); color:var(--ink-soft);}
+  .key.bump::after{content:""; position:absolute; bottom:5px; left:50%; width:30%; height:3px; transform:translateX(-50%); border-radius:2px; background:rgba(27,27,58,.4);}
+  .key.wide{width:calc(var(--k) * 1.75); font-size:calc(var(--k) * .26);}
+  .key.space{width:calc(var(--k) * 6.5); font-size:calc(var(--k) * .26);}
+  .key.next{background:var(--ink); color:#fff; border-color:var(--ink); transform:translateY(-2px); box-shadow:0 0 0 3px var(--yellow);}
+  .key.next .up{color:rgba(255,255,255,.7);}
+  .key.next.bump::after{background:rgba(255,255,255,.6);}
+  .key.press{transform:translateY(2px); border-bottom-width:1.5px;}
+  .kb-row.r2{padding-left:calc(var(--k) * .35);}
+  .kb-row.rn{padding-right:var(--k);}   /* ряд цифр зсунутий ліворуч, як на справжній клавіатурі */
+  @media (max-width:600px){
+    :root{--bal-w:48px; --sky-h:230px; --ground-h:64px;}
+    .text-box{font-size:22px;}
+    .panel{padding:16px 14px;}
+    /* на телефоні Shift вужчі (1.15 клавіші), тож нижній ряд — 12.3 клавіші, і самі клавіші більші */
+    .kb{--k:calc((100vw - 105px) / 12.3); gap:4px;} .kb-row{gap:3px;}
+    .key.wide{width:calc(var(--k) * 1.15);}
+    .container{padding:0 12px;}
+    .sun{width:28px; height:28px; top:6px;}
+    /* лічильники — в один ряд, число над підписом */
+    .stats{display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;}
+    .stat{padding:4px 4px; text-align:center; font-size:11px; line-height:1.2;}
+    .stat b{display:block; margin:0; font-size:16px;}
+    /* вікно результату: три показники в один ряд */
+    .result{gap:6px; flex-wrap:nowrap;}
+    .result div{flex:1; min-width:0; padding:8px 6px;}
+    .result b{font-size:22px;}
+    .win{padding:22px 16px;}
+  }
+  @media (max-width:420px){ .field{flex-direction:column;} .field .btn{align-self:center;} }
+
+  /* ---------- Результат ---------- */
+  .overlay{position:fixed; inset:0; z-index:20; background:rgba(27,27,58,.45); display:none; align-items:center; justify-content:center; padding:16px;}
+  .overlay.show{display:flex;}
+  .win{background:var(--surface); border-radius:var(--radius-l); padding:26px 24px; max-width:470px; width:100%; text-align:center; box-shadow:0 20px 50px rgba(27,27,58,.25); max-height:90vh; overflow:auto;}
+  .win h2{font-size:26px; margin-bottom:2px;}
+  .win .sub{color:var(--ink-soft); font-size:14.5px; margin:0;}
+  .win .sub:empty{display:none;}
+  .win .big{font-size:56px; line-height:1; margin-bottom:6px; animation:bounce 1s ease infinite alternate;}
+  @keyframes bounce{to{transform:translateY(-8px) rotate(-6deg);}}
+  .confetti{position:fixed; top:-20px; width:10px; height:16px; border-radius:3px; z-index:30; pointer-events:none; animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);}}
+  .stars{font-size:44px; letter-spacing:6px; line-height:1; margin:12px 0 14px;}
+  .stars span{display:inline-block; animation:star-in .4s ease both;}
+  .stars span:nth-child(2){animation-delay:.25s;} .stars span:nth-child(3){animation-delay:.5s;}
+  .stars .dim{filter:grayscale(1); opacity:.25;}
+  @keyframes star-in{from{transform:scale(0) rotate(-90deg);} to{transform:scale(1) rotate(0);}}
+  .result{display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
+  .result div{background:var(--bg); border-radius:var(--radius-m); padding:8px 14px; min-width:105px;}
+  .result b{display:block; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:26px; line-height:1.1; color:var(--teal-dark);}
+  .result small{font-size:13px; color:var(--ink-soft);}
+  .record{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; color:#8A6200; background:#FFF4D6; border-radius:999px; display:inline-block; padding:3px 14px; margin-bottom:10px;}
+  /* ---------- Наліпки ---------- */
+  .stickers-box{margin-top:20px; padding-top:16px; border-top:1.5px dashed var(--line);}
+  .stickers-head{display:flex; align-items:baseline; gap:10px;}
+  .stickers-head h3{font-size:15px; color:var(--ink-soft);}
+  .stickers-head span{font-size:13px; color:var(--ink-soft);}
+  .stickers{display:grid; grid-template-columns:repeat(auto-fill, minmax(86px, 1fr)); gap:8px; margin-top:10px;}
+  .sticker{display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; cursor:pointer; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:12.5px; line-height:1.15;}
+  .sticker .st-ico{position:relative; overflow:hidden; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:27px;
+    background:radial-gradient(circle at 35% 30%, #FFFFFF, #FFF1C2); border:3px solid #FFC93C; box-shadow:0 3px 0 #E0A800;}
+  .sticker.no{color:var(--ink-soft); font-weight:600;}
+  .sticker.no .st-ico{background:var(--bg); border:2px dashed var(--line); box-shadow:none;}
+  .sticker.no .st-ico span{filter:grayscale(1); opacity:.3;}
+  .sticker.new .st-ico{animation:st-beat .6s ease 2;}
+  @keyframes st-beat{50%{transform:scale(1.4);}}
+  /* Наліпка, яку збирають за кілька польотів: знизу вгору заповнюється кольором на стільки, скільки вже зібрано */
+  .st-part{position:absolute; left:0; right:0; bottom:0; height:var(--fill); overflow:hidden; background:#FFE08A; border-top:2px solid #E0A800;}
+  .st-part span{position:absolute; left:0; right:0; bottom:0; height:48px; display:flex; align-items:center; justify-content:center;}
+  .sticker.no .st-ico .st-part, .sticker.no .st-ico .st-part span{filter:none; opacity:1;}
+  /* Зібрано все, що треба: замість сірого пунктиру — суцільне жовте коло, лінії зверху немає */
+  .sticker.no.full .st-ico{border:3px solid #FFC93C;}
+  .sticker.full .st-part{border-top:none;}
+  .sticker small{font-size:11.5px; font-weight:700; color:#8A6200;}
+  .unlock .stickers{display:flex; flex-wrap:wrap; justify-content:center; gap:10px 18px; margin-top:8px;}
+  .unlock .sticker{width:86px;}
+  .unlock{border:2px dashed var(--yellow); border-radius:var(--radius-m); padding:10px 12px 12px; margin:4px 0 14px; animation:star-in .5s ease .6s both;}
+  .unlock b{font-family:'Baloo 2',sans-serif; font-size:17px;}
+  .unlock .track-prev{border-radius:var(--radius-s); margin-top:8px;}
+  .win-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px;}
+  /* Кнопки вікна результату стоять одразу під зірками, над показниками, тож їх видно без прокрутки */
+  #overlay .win{position:relative; max-height:calc(100vh - 32px);}
+  /* Хрестик закриває вікно результату — те саме, що друга кнопка («До перегонів» чи «До результатів») */
+  .win-close{position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:16px; font-weight:700; line-height:1; cursor:pointer;}
+  .win-close:hover{border-color:var(--coral); color:var(--coral);}
+  #overlay .win-actions{margin:0 0 14px;}
+  /* Невисокий екран: усе компактніше, нові кулі й регіони — в один ряд */
+  @media (max-height:780px){
+    #overlay .win{padding-top:16px;}
+    #overlay .win .big{font-size:40px; margin-bottom:2px;}
+    #overlay .win h2{font-size:22px;}
+    #overlay .stars{font-size:32px; margin:6px 0 8px;}
+    #overlay .result{margin-bottom:8px;}
+    #overlay .result div{padding:4px 12px;}
+    #overlay .result b{font-size:22px;}
+    #overlay .unlock-list{grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));}
+    #overlay .unlock-item{flex-direction:column; gap:4px; text-align:center; font-size:13px;}
+    #overlay .unlock-item .thumb{width:84px;}
+    #overlay .unlock-item .thumb.badge{width:44px;}
+    #overlay .unlock-item b{display:block; line-height:1.2;}   /* «Змагання» чи «Куля» — підписом, назва — окремим рядком */
+    #overlay .unlock-item .track-prev{height:36px;}
+  }
+
+  /* ---------- Вкладки ---------- */
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 18px; padding-bottom:12px; border-bottom:1.5px solid var(--line);}
+  .tab{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; border:none; background:none; color:var(--ink-soft); padding:6px 14px; border-radius:999px; cursor:pointer;}
+  .tab:hover{background:var(--bg);}
+  .tab.on{background:var(--ink); color:#fff;}
+  .tab-count{font-size:12px; background:var(--yellow); color:var(--ink); border-radius:999px; padding:0 7px; margin-left:2px;}
+
+  /* ---------- Профіль ---------- */
+  .player-btn{display:inline-flex; align-items:center; gap:6px;}
+  .pb-bal{display:inline-block; width:17px; flex-shrink:0;}
+  .pb-bal svg{display:block; width:100%; height:auto; overflow:visible;}
+  .win.prof{position:relative; text-align:left; max-width:480px;}
+  /* Хрестик угорі праворуч закриває вікно */
+  .prof-close{position:absolute; top:14px; right:14px; z-index:1; width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:16px; font-weight:700; line-height:1; cursor:pointer;}
+  .prof-close:hover{border-color:var(--coral); color:var(--coral);}
+  .prof-foot .share-ico{position:static;}   /* «поділитися» — унизу праворуч, поруч із «скинути мій прогрес» */
+  .win.prof h2{text-align:center; font-size:24px;}
+  .prof-avatar{position:relative; width:150px; margin:0 auto 6px; padding:16px 34px 8px; border-radius:var(--radius-l); background:linear-gradient(180deg, #E3F7F6, #F6F5FB);}
+  .prof-avatar svg{display:block; width:100%; height:auto; overflow:visible;}
+  .prof-avatar .badge-ico{position:absolute; top:-8px; right:-10px; width:52px; height:52px;}
+  .prof-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; margin:4px 0 6px; font-size:14px; color:var(--ink-soft);}
+  .prof-stats b{font-family:'Baloo 2',sans-serif; font-size:17px; color:var(--ink);}
+  .players{display:flex; flex-direction:column; gap:6px; margin-top:8px;}
+  .pl-row{display:flex; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:var(--radius-m); padding:6px 8px 6px 10px; background:var(--surface);}
+  .pl-row.me{border-color:var(--teal); background:#F2FBF7;}
+  .pl-row .pb-bal{width:26px; margin:0 9px;}
+  .pl-name{flex:1; min-width:0; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pl-name small{display:block; font-family:'Nunito Sans',sans-serif; font-weight:600; font-size:12px; color:var(--ink-soft);}
+  .pl-name small .nico{width:13px; height:13px;}
+  .pl-you{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; color:var(--teal-dark); padding:0 6px;}
+  .pl-del{width:30px; height:30px; border-radius:50%; border:none; background:none; color:var(--ink-soft); font-size:15px; cursor:pointer;}
+  .pl-del:hover{background:#FFEFE9; color:#C2410C;}
+  .prof-foot{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding-top:12px; border-top:1.5px dashed var(--line);}
+  .link-btn.danger{color:#C2410C;}
+
+  /* ---------- Перегляд за посиланням (лише читання) ---------- */
+  body.ro .neuron-counter, body.ro #playerBtn{display:none;}
+  .ach-head{display:flex; align-items:center; gap:20px; flex-wrap:wrap;}
+  .ach-head .prof-avatar{margin:0; flex-shrink:0;}
+  .ach-head h2{font-size:28px; line-height:1.15;}
+  .ach-head .prof-stats{justify-content:flex-start; margin:6px 0 2px;}
+  /* Графік швидкості в профілі */
+  .speed-chart{position:relative;}
+  .speed-chart svg{display:block; width:100%; height:auto; font-family:'Nunito Sans',sans-serif; font-size:11px; fill:var(--ink-soft);}
+  .speed-chart .val{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px; fill:var(--ink);}
+  .chart-tip{position:absolute; transform:translate(var(--tx, -50%), calc(-100% - 12px)); background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-s);
+    padding:4px 10px; font-size:12.5px; line-height:1.4; color:var(--ink); white-space:nowrap; pointer-events:none; box-shadow:0 6px 16px rgba(27,27,58,.15);}
+  /* Слабкі клавіші на екрані результату */
+  .weak{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:6px 8px; margin:2px 0 10px; font-size:14px; color:var(--ink-soft);}
+  .weak .kbd{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; color:var(--ink); background:var(--surface); border:1.5px solid var(--line); border-bottom-width:3px; border-radius:7px; padding:0 9px; min-width:28px; text-align:center;}
+  .weak small{margin-left:-4px;}
+  .medals{display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:10px;}
+  .medal-item{position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; border:1.5px solid var(--line); border-radius:var(--radius-m); padding:10px 6px 8px;}
+  .medal-item.got{background:#FFFBEF; border-color:#F5D98A;}
+  .medal-item .badge-ico{width:44px; height:44px;}
+  .medal-item:not(.got) .badge-ico{filter:grayscale(1) opacity(.3);}
+  .medal-item .m{position:absolute; top:4px; right:6px; font-size:22px; line-height:1;}
+  .medal-item small{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:12.5px; line-height:1.2; color:var(--ink-soft);}
+  .medal-item.got small{color:var(--ink);}
+
+  /* ---------- Гравці й поширення ---------- */
+  .player-btn{max-width:200px; overflow:hidden; text-overflow:ellipsis;}
+  .pick.locked .bal-prev svg{filter:brightness(0) opacity(.16);}
+  .pick.locked .label{color:var(--ink-soft);}
+  .pick.static{cursor:default;}
+  .pick.static:hover{transform:none;}
+  .field{display:flex; gap:8px; margin:14px 0 6px;}
+  .field input{flex:1; min-width:0; font:inherit; font-size:16px; padding:9px 14px; border:1.5px solid var(--line); border-radius:999px; outline:none; color:var(--ink);}
+  .field input:focus{border-color:var(--teal);}
+  .known{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:14px 0 4px;}
+  .chip-btn{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; padding:5px 14px; cursor:pointer;}
+  .chip-btn:hover{border-color:var(--teal);}
+  .note-small{font-size:13px; color:var(--ink-soft); margin:6px 0 0;}
+  .win h3{font-size:16px; margin:18px 0 4px; text-align:left;}
+  .win .left{text-align:left;}
+  .btn-small{font-size:13.5px; padding:7px 14px;}
+  .unlock-list{display:grid; gap:8px; margin-top:8px;}
+  .unlock-item{display:flex; align-items:center; gap:12px; text-align:left; font-size:14px;}
+  .unlock-item .thumb{width:92px; flex-shrink:0;}
+  .unlock-item .thumb svg{width:100%; display:block; overflow:visible;}
+  .unlock-item .thumb.bal svg{height:64px; width:auto; margin:0 auto;}
+  /* бейджик змагання — невеликий значок, а не на всю ширину мініатюри */
+  .unlock-item .thumb.badge{width:44px;}
+  .unlock-item .thumb .badge-ico{display:block; width:44px; height:44px;}
+  .unlock-item .track-prev{margin:0; height:44px;}
+  .unlock-item small{color:var(--ink-soft);}
+
+  .share-date{color:var(--ink-soft); font-size:13.5px;}
+  .share-sec h3{font-size:15px; color:var(--ink-soft); margin:18px 0 8px;}
+  .best-table{border-collapse:collapse; font-size:14.5px; width:100%; max-width:560px;}
+  .best-table th, .best-table td{padding:6px 10px; border-bottom:1px solid var(--line); text-align:left;}
+  .best-table th{font-family:'Baloo 2',sans-serif; font-weight:600; color:var(--ink-soft);}
+  .best-table td b{font-family:'Baloo 2',sans-serif; font-size:17px;}
+  .share-actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:22px;}
+
+  .typer{position:absolute; left:0; top:0; width:1px; height:1px; opacity:0; border:0; padding:0; font-size:16px;}
+
+  /* ---------- Нейрончики ---------- */
+  .neuron-counter{display:flex; align-items:center; gap:6px; margin-left:auto; background:var(--surface); border:1.5px solid var(--line); border-radius:999px; padding:3px 12px 3px 4px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; white-space:nowrap;}
+  .neuron-counter svg{width:24px; height:24px;}
+  #neuronCount{display:inline-block; min-width:1.4em; transition:transform .25s ease;}
+  #neuronCount.pop{transform:scale(1.35);}
+  .nico{display:inline-block; width:1.15em; height:1.15em; vertical-align:-.22em;}
+  .bar{height:10px; border-radius:999px; background:var(--line); overflow:hidden;}
+  .bar i{display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--yellow), var(--coral));}
+  .gain{display:inline-flex; align-items:center; gap:6px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; color:#8A6200; background:#FFF4D6; border-radius:999px; padding:2px 16px; margin-bottom:4px;}
+  .gain svg{width:26px; height:26px;}
+
+  /* ---------- Бейджики ---------- */
+  .badge-ico{display:inline-block; width:1.4em; height:1.4em; vertical-align:-.3em; flex-shrink:0;}
+  .badge-ico svg{display:block; width:100%; height:100%;}
+  .balloon .tag{display:flex; align-items:center; gap:3px;}
+  .balloon .tag .badge-ico{width:16px; height:16px;}
+  .bal-extras{display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; margin-top:12px;}
+  .bal-extras .swatches{margin-top:0;}
+  .start-over{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .start-over .btn{pointer-events:auto; box-shadow:0 4px 0 var(--teal-dark), 0 10px 24px rgba(27,27,58,.3);}
+  .race-info{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--ink-soft); margin:-4px 0 10px;}
+  .race-info:empty{display:none;}
+  .exit-btn{position:absolute; top:12px; right:12px; z-index:2; width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:16px; font-weight:700; line-height:1; cursor:pointer;}
+  .exit-btn:hover{border-color:var(--coral); color:var(--coral);}
+  /* Під час польоту статистику не показуємо: числа, що змінюються, відволікають; вона є на екрані результату */
+  .race-panel .stats{display:none;}
+  .hint-row{display:flex; align-items:center; gap:10px; margin:12px 0 10px;}
+  .hint-row .hint{flex:1; margin:0;}
+  .hint-row .exit-btn{position:static; flex:none;}
+  .pause-btn:hover{border-color:var(--teal); color:var(--teal-dark);}
+  /* Пауза кнопкою ⏸: та сама картка, але продовжує лише кнопка «Грати далі» */
+  .race-panel.paused .pause-note{display:flex; cursor:default;}
+  .race-panel.paused .pause-card{animation:none;}   /* у кнопку, що не пульсує, легше влучити */
+  .race-panel.paused .hint-row .exit-btn{position:relative; z-index:6;}   /* ⏸ і ✕ працюють і під час паузи */
+  .race-panel.paused .pause-text, .race-panel:not(.paused) .pause-go{display:none;}
+  .pause-go{margin-top:12px;}
+  /* Довідка для вчителя: які налаштування з адреси діють */
+  .teacher-note{margin-top:10px; text-align:center; font-size:12.5px; color:var(--ink-soft); opacity:.8;}
+  .teacher-note:empty{display:none;}
+  .pick .label:last-child{padding-bottom:10px;}
+
+  /* ---------- Змагання ---------- */
+  .comps{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(380px, 100%), 1fr)); grid-auto-rows:1fr; gap:12px;}
+  .comp{position:relative; transition:border-color .15s ease, box-shadow .15s ease; display:flex; flex-direction:column; gap:5px; border:1.5px solid var(--line); border-radius:var(--radius-m); padding:10px 12px; background:var(--surface);}
+  .comp.got{background:#FFFBEF; border-color:#F5D98A;}
+  .comp-head{display:flex; align-items:center; gap:10px; padding-right:44px;}
+  .share-ico{position:absolute; top:10px; right:10px; width:38px; height:38px; border-radius:var(--radius-s); border:1.5px solid var(--line); background:var(--surface); color:var(--teal-dark); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;}
+  .share-ico svg{width:26px; height:26px;}
+  .share-ico:hover{border-color:var(--teal); background:#E3F7F6;}
+  .share-mini{display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; margin-left:6px; vertical-align:-3px; padding:0; border:none; border-radius:7px; background:none; color:var(--teal-dark); cursor:pointer;}
+  .share-mini svg{width:19px; height:19px;}
+  .share-mini:hover{background:#E3F7F6;}
+  .share-mini.done{color:#16803C;}
+  .share-mini:focus{outline:none;}
+  .share-ico.done{border-color:#16803C; color:#16803C;}
+  .toast{position:fixed; left:50%; bottom:24px; z-index:40; transform:translate(-50%, 20px); opacity:0; pointer-events:none;
+    background:var(--ink); color:#fff; font-family:'Baloo 2',sans-serif; font-weight:600; font-size:15px; padding:8px 18px; border-radius:999px;
+    box-shadow:0 8px 20px rgba(27,27,58,.25); transition:opacity .2s ease, transform .2s ease;}
+  .toast.show{opacity:1; transform:translate(-50%, 0);}
+  .share-ico:focus{outline:none;}
+  .share-ico:focus-visible{outline:3px solid var(--purple); outline-offset:2px;}
+  .tab-comp{display:inline-flex; align-items:center; gap:6px;}
+  .tab-comp .badge-ico{width:22px; height:22px;}
+  .cp-head{display:flex; align-items:center; gap:12px; position:relative; padding-right:48px;}
+  .cp-head .badge-ico{width:56px; height:56px;}
+  .cp-head h2{font-size:24px; line-height:1.15;}
+  .cp-head .share-ico{position:absolute; top:0; right:0;}
+  .cp-info{display:flex; flex-wrap:wrap; align-items:center; gap:6px 18px; margin:10px 0 12px;}
+  .cp-progress{display:flex; align-items:center; gap:10px; flex:1; min-width:220px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; color:var(--ink-soft);}
+  .cp-progress .bar{flex:1;}
+  .cp-progress .bar i{background:linear-gradient(90deg, var(--teal), #3DDC84);}
+  .stage-table td:first-child{width:28px; font-family:'Baloo 2',sans-serif; font-weight:800; color:var(--ink-soft);}
+  .stage-table tr.next td{background:#F2FBF7;}
+  .next-bal{display:inline-block; width:24px; vertical-align:middle;}
+  .next-bal svg{display:block; width:100%; height:auto; overflow:visible;}
+  .stage-table tr.todo td{color:var(--ink-soft);}
+  .cp-foot{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; font-size:14px; font-weight:700;}
+  .cp-foot #leaveComp{margin-left:auto;}
+  .btn-red{background:#E8453C; color:#fff;}
+  .btn-red:hover{background:#C9352D;}
+  .key-ico{width:1.3em; height:1.3em; vertical-align:-.3em; display:inline-block;}
+  .comp-bals{display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:12.5px; font-weight:700; margin-left:8px;}
+  .comp-bal{display:flex; align-items:center; gap:4px;}
+  .comp-bal svg{width:20px; height:auto; display:block; overflow:visible;}
+  .comp-bal.locked svg{filter:brightness(0) opacity(.18);}
+  .comp-bal.locked{color:var(--ink-soft);}
+  .comp-head .badge-ico{width:38px; height:38px;}
+  .comp:not(.got) .comp-head .badge-ico{filter:grayscale(1) opacity(.35);}
+  .comp-num{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:12px; line-height:1.2; color:var(--ink-soft);}
+  .comp h4{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px; line-height:1.15; margin:0;}
+  .diff{letter-spacing:1px; color:var(--coral); font-size:11px; margin-left:4px;}
+  .diff i{font-style:normal; color:var(--line);}
+  .stages{display:flex; flex-wrap:wrap; gap:4px;}
+  .stage-chip{font-size:12.5px; font-weight:700; background:var(--bg); border-radius:999px; padding:2px 9px;}
+  .stage-chip.done{background:#DDF4E6; color:#16803C;}
+  .comp-rules{display:flex; flex-wrap:wrap; align-items:center; font-size:12.5px; color:var(--ink-soft); line-height:1.45; min-height:24px;}
+  .comp-best{font-size:30px; line-height:1;}
+  .comp-foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:2px; font-size:13px; font-weight:700;}
+  .comp-foot .btn{margin-left:auto;}
+  .comp-foot{flex-wrap:nowrap;}
+  .comp-foot .btn{white-space:nowrap; padding:7px 13px;}
+  .link-btn{border:none; background:none; color:var(--teal-dark); font-weight:700; font-size:12.5px; cursor:pointer; padding:0; text-decoration:underline;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .comp-box{border:2px dashed var(--teal); border-radius:var(--radius-m); padding:10px 12px; margin:4px 0 14px; text-align:left; font-size:14px;}
+  .comp-box.fail{border-color:var(--coral);}
+  .comp-box.step{border:none; padding:0; text-align:center; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; color:#16803C; margin:2px 0 12px;}
+  .comp-box.fail.step{color:#C2410C;}
+  .comp-box.final{position:relative; padding-right:58px; border-color:var(--yellow); background:#FFFBEF;}
+  .comp-box.final .share-ico{top:50%; transform:translateY(-50%);}
+  .comp-box .field{margin:8px 0 2px;}
+
+  /* ---------- Результати змагання ---------- */
+  .cert{border:2px solid #F5D98A; border-radius:var(--radius-l); padding:20px; background:linear-gradient(180deg, #FFFBEF 0%, #FFFFFF 45%);}
+  .cert-head{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .cert-head .badge-ico{width:62px; height:62px;}
+  .cert-kicker{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:13px; letter-spacing:.8px; text-transform:uppercase; color:var(--ink-soft);}
+  .cert-head h2{font-size:28px; line-height:1.1;}
+  .cert-medal{margin-left:auto; text-align:center; font-size:50px; line-height:1;}
+  .cert-medal small{display:block; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; color:var(--ink-soft);}
+  .cert-who{margin:12px 0 14px; font-size:15px;}
+  .res-table{border-collapse:collapse; font-size:14px; width:100%;}
+  .res-table th, .res-table td{padding:7px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle;}
+  .res-table th{font-family:'Baloo 2',sans-serif; font-weight:600; color:var(--ink-soft);}
+  .res-table tfoot td{font-weight:800; border-top:2px solid var(--line); border-bottom:none;}
+  .res-table .won{color:#16803C; font-weight:800;}
+  .table-scroll{overflow-x:auto;}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="back-link" href="https://cyrilreyda.github.io/">← Всі ігри</a>
+  <span class="game-title">Повітряні перегони</span>
+  <div class="neuron-counter" title="Нейрончики — твій досвід. За них відкриваються регіони й кулі.">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
+      <line x1="14.1" y1="15.6" x2="16.6" y2="20" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.6" cy="20" r="1.2" fill="#FFC93C"/>
+      <line x1="9.9" y1="15.6" x2="7.4" y2="20" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="7.4" cy="20" r="1.2" fill="#FFC93C"/>
+      <line x1="7.8" y1="12" x2="3.7" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="3.7" cy="12" r="1.2" fill="#FFC93C"/>
+      <line x1="9.9" y1="8.4" x2="7.4" y2="4" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="7.4" cy="4" r="1.2" fill="#FFC93C"/>
+      <line x1="14.1" y1="8.4" x2="16.6" y2="4" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.6" cy="4" r="1.2" fill="#FFC93C"/>
+      <circle cx="12" cy="12" r="4.4" fill="#FFC93C"/><circle cx="12" cy="12" r="1.6" fill="#E0A800" opacity="0.6"/>
+    </svg>
+    <span id="neuronCount">0</span>
+  </div>
+  <a class="top-btn" href="guide/index.html" title="Інструкція: змагання й посилання на результати">❓<span class="long"> Як грати</span></a>
+  <button class="top-btn player-btn" id="playerBtn" title="Профіль гравця"><span class="pb-bal" id="playerBal"></span><span class="long" id="playerName">Гравець</span></button>
+  <button class="top-btn fs-btn" id="fsBtn" type="button" title="На весь екран (F11)" aria-label="На весь екран (F11)" hidden>
+    <svg class="fs-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 10.5L20 4M14 4h6v6M10.5 13.5L4 20M4 14v6h6"/></svg>
+    <svg class="fs-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4l-6 6M14 5v5h5M4 20l6-6M5 14h5v5"/></svg>
+  </button>
+</div></div>
+
+<main class="container">
+  <section class="track" id="track" aria-label="Небо регіону">
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🎈 На старт!</button></div>
+    <span class="track-name" id="trackName"></span>
+    <div class="timer" id="timer" hidden><span id="timerNum">1:00</span><span class="tbar"><i></i></span>🏁</div>
+    <div class="clouds" id="clouds"></div>
+    <div class="ground" id="ground"></div>
+    <div class="mast" id="mast"></div>
+    <div class="balloon bot" id="balBot"></div>
+    <div class="balloon me" id="balMe"></div>
+    <div class="fx" id="fx"></div>
+    <div class="countdown" id="countdown" hidden>
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="count-num" id="countNum">3</div>
+    </div>
+  </section>
+
+  <!-- Гараж: вільний політ і змагання -->
+  <section class="panel" id="setup">
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab on" data-tab="paneFree">🎈 Вільний політ</button>
+      <button type="button" class="tab tab-comp" data-tab="paneComp" id="compTab" hidden></button>
+      <button type="button" class="tab" data-tab="paneComps">🏆 Змагання <span class="tab-count" id="compCount"></span></button>
+    </div>
+
+    <div class="pane" id="paneFree">
+      <div class="setup-grid">
+        <div class="opt full"><h3>Регіон</h3><div class="cards tracks" id="trackCards"></div></div>
+        <div class="opt full"><h3>Куля</h3><div class="cards balloons" id="balCards"></div>
+          <div class="bal-extras"><div class="swatches" id="swatches"></div></div></div>
+        <div class="opt full"><h3>Мова</h3><div class="seg" id="segLang"></div></div>
+      </div>
+    </div>
+
+    <div class="pane" id="paneComp" hidden></div>
+
+    <div class="pane" id="paneComps" hidden>
+      <div class="comps" id="compList"></div>
+    </div>
+
+    <div class="stickers-box">
+      <div class="stickers-head"><h3>Наліпки</h3><span id="stickerCount"></span></div>
+      <div class="stickers" id="stickers"></div>
+    </div>
+  </section>
+
+  <!-- Політ -->
+  <section class="panel race-panel" id="race" hidden>
+    <div class="race-info" id="raceInfo"></div>
+    <div class="stats">
+      <span class="stat"><b id="sTime">0:00</b>час</span>
+      <span class="stat"><b id="sSpeed">0</b>знаків/хв</span>
+      <span class="stat"><b id="sErr">0</b>помилок</span>
+      <span class="stat"><b id="sAcc">100</b>% точність</span>
+    </div>
+    <div class="text-box" id="textBox"><div class="text-lines" id="textLines"></div></div>
+    <div class="hint-row">
+      <div class="hint" id="hint"></div>
+      <button class="exit-btn pause-btn" id="pauseBtn" type="button" title="Пауза" aria-label="Пауза">⏸</button>
+      <button class="exit-btn" id="exitBtn" type="button" title="Вийти з польоту (Esc)" aria-label="Вийти з польоту">✕</button>
+    </div>
+    <div class="kb-wrap">
+      <div class="tip" id="tip" hidden></div>
+      <div class="alert" id="alert" role="alert" hidden></div>
+      <div class="kb" id="kb" aria-hidden="true"></div>
+    </div>
+    <div class="teacher-note" id="teacherNote"></div>
+    <div class="pause-note"><div class="pause-card"><div class="pause-ico">⏸</div><div class="pause-title">Пауза</div><div class="pause-text">👆 Клацни тут, щоб продовжити</div><button class="btn btn-primary pause-go" id="resumeBtn" type="button" title="Грати далі (Enter)">▶ Грати далі</button></div></div>
+    <input class="typer" id="typer" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Поле для друку">
+  </section>
+
+  <!-- Досягнення гравця або результати змагання з посилання -->
+  <section class="panel" id="shareView" hidden></section>
+</main>
+
+<!-- Результат польоту -->
+<div class="overlay" id="overlay">
+  <div class="win" role="dialog" aria-labelledby="winTitle">
+    <button class="win-close" id="winClose" type="button" title="Закрити (Esc)" aria-label="Закрити">✕</button>
+    <div class="big" id="wBig">🏆</div>
+    <h2 id="winTitle">Перемога!</h2>
+    <p class="sub" id="wSub"></p>
+    <div class="stars" id="wStars"></div>
+    <div class="win-actions">
+      <button class="btn btn-primary" id="againBtn">🎈 Ще політ</button>
+      <button class="btn btn-ghost" id="toSetupBtn">🏁 До перегонів</button>
+    </div>
+    <div class="result">
+      <div><b id="wSpeed">0</b><small>знаків/хв</small></div>
+      <div><b id="wAcc">0%</b><small>точність</small></div>
+      <div><b id="wDist">0</b><small>метрів</small></div>
+    </div>
+    <div id="wGain"></div>
+    <div id="wComp"></div>
+    <div id="wRecord"></div>
+    <div id="wWeak"></div>
+    <div id="wUnlock"></div>
+  </div>
+</div>
+
+<!-- Вибір гравця -->
+<div class="overlay" id="nameOverlay">
+  <div class="win" role="dialog" aria-labelledby="nameTitle">
+    <div class="big">👋</div>
+    <h2 id="nameTitle">Привіт! Як тебе звати?</h2>
+    <p class="sub">Під цим ім'ям на цьому пристрої збережуться твої нейрончики, кулі, рекорди й медалі.</p>
+    <div class="known" id="knownPlayers"></div>
+    <form class="field" id="nameForm">
+      <input id="nameInput" maxlength="24" placeholder="Ім'я та прізвище" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Почати</button>
+    </form>
+    <p class="note-small" id="nameErr"></p>
+    <button class="btn btn-ghost btn-small" id="nameCancel" type="button" hidden>Скасувати</button>
+  </div>
+</div>
+
+<!-- Профіль гравця -->
+<div class="overlay" id="profileOverlay">
+  <div class="win prof" role="dialog" aria-labelledby="profTitle">
+    <button class="prof-close" id="profClose" type="button" title="Закрити вікно" aria-label="Закрити вікно">✕</button>
+    <div class="prof-avatar" id="profAvatar"></div>
+    <h2 id="profTitle"></h2>
+    <div class="prof-stats" id="profStats"></div>
+    <h3>Швидкість по днях, знаків/хв</h3>
+    <div class="speed-chart" id="profChart"></div>
+    <h3>Гравці на цьому пристрої</h3>
+    <div class="players" id="playerList"></div>
+    <form class="field" id="addForm">
+      <input id="addInput" maxlength="24" placeholder="Ім'я нового гравця" autocomplete="off">
+      <button class="btn btn-primary" type="submit">＋ Додати</button>
+    </form>
+    <p class="note-small" id="addErr"></p>
+    <div class="prof-foot">
+      <button class="link-btn danger" id="resetBtn" type="button">скинути мій прогрес</button>
+      <div id="profShare"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ?boost — нормативи середньої школи (5–7 класи) з оригінальної гри: швидкості роботів, точність, медалі,
+// повні речення, без фори й пригальмовування робота, усі змагання відкриті. Прогрес — окремий.
+// У встановленій грі (PWA) адреси не видно, тож вчитель перемикає режим ще й Ctrl+Alt+B — це запам'ятовується на пристрої.
+// ?boost в адресі діє лише на цей запуск: один комп'ютер може відкривати гру різним класам різними посиланнями
+const BOOST_KEY = 'balloon-race-kids-boost';
+let boostSaved = false;
+try{ boostSaved = localStorage.getItem(BOOST_KEY) === 'on'; }catch(e){}
+const BOOST = boostSaved || new URLSearchParams(location.search).has('boost');
+/* ================= Тексти ================= */
+// Слова лише з літер основного ряду (ФІВА ПР ОЛДЖЄ / ASDF G H JKL)
+const TEXTS = {
+  uk:{
+    home:['два','дід','вода','лава','пара','двір','ліпа','фара','рада','права','лапа','відро','жало','діра','водопад',
+          'папір','лід','овал','оладі','радів','жар','дрова','ода','поділ','плід','провід','дало'],
+    // Слова лише з літер основного й верхнього рядів (ЙЦУКЕНГШЩЗХЇ) — проміжний рівень для траси «Лондон»
+    top:['рука','нога','гора','нора','вода','друг','гра','лук','цукор','цукерка','їжак','їжа','шапка','шафа','город','дорога','пенал','ранок','зірка','лікар','кухар','пекар','лелека','вовк','курка','коза','корова','кенгуру','панда','папуга','пароплав','шарф','дзеркало','двері','підлога','вікно','кран','цегла','груша','горіх','кавун','горох','каша','поле','ліжко','акула','вухо','жук'],
+    words:['кіт','сонце','миша','файл','папка','екран','клавіша','школа','урок','друг','книга','місто','весна','ранок',
+           'хмара','річка','зошит','олівець','пісня','вікно','принтер','мережа','пароль','браузер','курсор','сайт','робот',
+           'планета','зірка','дельфін','їжак','щастя','юнак','мрія','гра','код','піксель','дані','текст','кнопка','монітор'],
+    // Фрази малими літерами без розділових знаків — щоб не потрібен був Shift
+    sentences:['зелений ліс','тепле сонце','мій новий зошит','веселі друзі','синя річка','червоне яблуко',
+           'шкільний дзвоник','руда лисичка','біла хмаринка','смачний обід','кольорові олівці','швидкий робот',
+           'мишка і клавіатура','великий монітор','тиха вода','добрий ранок','весела пісня','золота осінь',
+           'наш дружний клас','чарівна казка','літні канікули','жовтий соняшник','сміливий їжачок','пухнастий кіт',
+           'цікава книжка','щасливий день'],
+    // Українські речення з розділовими знаками й апострофом — змагання «Знаки українською»
+    ukpunct:["Привіт, Олено! Ти вже зробила домашнє завдання?","М'яч, п'ять, об'єкт - слова з апострофом.","Сьогодні вівторок; завтра - середа.","Що краще: миша чи сенсорна панель?","Комп'ютер, принтер, сканер - пристрої.","Ой, я забув пароль! Що робити?","Олег запитав: \"Де моя флешка?\"","Пам'ятай: пароль - це твій секрет.","Сім'я, здоров'я, подвір'я - пишемо з апострофом.","Файл (документ) збережено; можна закривати.","Тиша! Йде урок інформатики.","Чи знаєш ти, як скопіювати текст?","Будь ласка, вимкни звук: йде контрольна.","Ура! Ми перемогли в олімпіаді!","Дмитро сказав: \"Я вже вивчив сліпий друк\".","Хто знайде помилку, той отримає бонус."],
+    // Речення з числами, датами й часом — змагання «Цифри й код»
+    digits:["У нашому класі 27 учнів.","Урок починається о 8:30.","Мій день народження 15.03.2014.","У тижні 7 днів, а в році 12 місяців.","Кабінет інформатики - номер 105.","На парті лежать 3 олівці і 2 ручки.","Флешка має 64 гігабайти пам'яті.","Перерва триває 15 хвилин.","Київ заснували понад 1500 років тому.","Сьогодні 19 жовтня 2026 року.","У шкільній бібліотеці 4800 книжок.","Номер телефону: 044-123-45-67.","Квартира 12, поверх 4, під'їзд 2.","Мій пароль має 10 символів.","Олімпіада буде 25.11 о 10:00."],
+    // Повні речення оригінальної гри — для режиму ?boost
+    full:['Клавіатура допомагає швидко вводити текст.','Миша та клавіатура є пристроями введення.',
+           'Друкуй усіма десятьма пальцями.','Дивись на екран і не підглядай на клавіші.','Надійний пароль довгий і складний.',
+           'Тиха вода греблю рве.','Повторення мати навчання.','Наш робот вчиться друкувати без помилок.',
+           'Принтер друкує текст на папері.','Файли зберігаються в папках.','Не відкривай листи від незнайомців.',
+           'Монітор показує зображення.','Без праці не виловиш і рибки зі ставка.','Терпіння і праця все перетруть.',
+           'Інформатика вчить думати логічно.','Зберігай роботу кожні кілька хвилин.']
+  },
+  en:{
+    home:['dad','sad','lad','add','ask','glass','flask','salad','hall','fall','all','gas','flag','half','shall','dash',
+          'glad','has','had','lash','flash','gala','lag'],
+    top:['water','tree','house','apple','pear','horse','dog','frog','goat','sheep','tiger','hat','sofa','toy','kite','ship','fish','rose','red','yellow','purple','pig','egg','tea','sweet','gift','lake','road','door','roof','hello','happy','jelly','paper','pirate','shoes','great','hop','help'],
+    words:['cat','sun','mouse','file','folder','screen','key','school','friend','book','robot','rocket','planet','star',
+           'music','window','printer','network','password','browser','cursor','game','apple','river','cloud','pixel',
+           'code','data','button','monitor','text','zebra','quiz','jump','yellow','happy'],
+    sentences:['a red apple','my new book','big blue sky','a happy cat','green trees','the fast robot',
+           'a little mouse','hot tea','my best friend','a yellow sun','the school bus','a funny dog',
+           'cold ice cream','a good game','the white cloud','my green pen'],
+    full:['Practice makes perfect.','My robot can type very fast.','The mouse and the keyboard are input devices.',
+           'Save your work every few minutes.','A strong password is long and secret.','The printer puts text on paper.',
+           'Every file lives in a folder.','Slow and steady wins the race.','Look at the screen and not at the keys.',
+           'Computers help us learn new things.','Keep your fingers on the home row.'],
+    // Рядки коду — змагання «Цифри й код»
+    code:["x = 5 + 3","print('Hello, world!')","name = input('Name: ')","for i in range(10):","if score > 90:","a = [1, 2, 3]","total = price * 2","user = {'age': 12}","while x < 100:","print(len(text))","def hello():","y = (x + 1) * 2","email = 'kid@school.ua'","colors = ['red', 'blue']","# my first program","z = x // 2 - 1"],
+    // Речення з розділовими знаками . , - ( ) " ! ? @ ' : — для змагання «Слалом знаків»
+    punct:['Hi, Anna! Can you send me the file?','My e-mail is robot@school.ua: write to me!',
+           "Don't forget: save your work (every few minutes)!",'"Ready?" asked the robot. "Go!"',
+           "It's a mouse, not a cat (a computer mouse)!",'Write to help@lab.org - or ask the teacher.',
+           'Is it a mouse, a keyboard, or a printer?',"Let's race: you, me, and the robot!",
+           "Tom's laptop isn't new, but it's fast.",'Is this link safe? Check it: look at the address!',
+           'Sam asked: "Where is my folder?"','Ready, steady - go!','Click "Save" (or press the keys).',
+           "We're online: kate@mail.com, max@mail.com.",'Oops! Wrong key - try again.',
+           'Wow! The robot is fast, but you are faster.',"Where's my mouse? (It's under the book!)",
+           'Note: the password is secret - never share it!','Ann wrote: "See you at school!"',
+           "My login is anna_k@mail.com - don't tell anyone!",'What is a file? It is a box for data.',
+           'Hello, world! Hello, robot!',"Is it raining? Yes, it is - take your umbrella!",
+           'Max said: "I can type with ten fingers!"',"First, open the browser; then, type the address."]
+  }
+};
+
+const COLORS = ['#FF6B4A','#16A3A0','#2D9CDB','#FF5D9E','#6C5CE7','#FFC93C'];
+// У кожної кулі свій колір: початковий — тут, обраний гравцем — у settings.colors
+const BALLOON_COLORS = { classic:'#FF6B4A', patch:'#2D9CDB', stars:'#6C5CE7', vyshyvanka:'#FF6B4A', sunflower:'#16A3A0', firebird:'#FF5D9E' };
+const balloonColor = (model, st = settings) => st?.colors?.[model] || BALLOON_COLORS[model] || COLORS[0];
+
+// Розкладки: [нижній символ, верхній (Shift)]; номер колонки визначає палець
+const LAYOUTS = {
+  uk:[ 'йцукенгшщзхї'.split(''), 'фівапролджє'.split(''), ['я','ч','с','м','и','т','ь','б','ю',['.',',']] ],
+  en:[ ['q','w','e','r','t','y','u','i','o','p',['[','{'],[']','}']],
+       ['a','s','d','f','g','h','j','k','l',[';',':'],["'",'"']],
+       ['z','x','c','v','b','n','m',[',','<'],['.','>'],['/','?']] ]
+};
+const BUMPS = { uk:['а','о'], en:['f','j'] };
+// Ряд цифр — лише коли в тексті є його символи (! @ ( ) - тощо); пальці — для кожної клавіші окремо
+const NUM_ROW = { en:[['1','!'],['2','@'],['3','#'],['4','$'],['5','%'],['6','^'],['7','&'],['8','*'],['9','('],['0',')'],['-','_'],['=','+']],
+                  // українська розкладка Windows: апостроф ліворуч від 1, знаки над цифрами інші, ніж в англійській
+                  uk:[["'",'₴'],['1','!'],['2','"'],['3','№'],['4',';'],['5','%'],['6',':'],['7','?'],['8','*'],['9','('],['0',')'],['-','_']] };
+const NUM_FINGER = { en:[0,1,2,3,3,3,4,5,6,7,7,7], uk:[0,0,1,2,3,3,3,4,5,6,7,7] };
+// Колонка → палець: 0–3 ліва рука (мізинець…вказівний), 4–7 права (вказівний…мізинець)
+const COL_FINGER = [0,1,2,3,3,4,4,5,6,7,7,7];
+const FINGERS = ['лівий мізинець','лівий безіменний','лівий середній','лівий вказівний',
+                 'правий вказівний','правий середній','правий безіменний','правий мізинець'];
+const FINGER_VAR = ['--f-pinky','--f-ring','--f-middle','--f-index','--f-index','--f-middle','--f-ring','--f-pinky'];
+
+
+// Прапори малюнками: емодзі прапорів Windows показує буквами (UA, GB)
+const FLAGS = {
+  uk:'<svg class="lang-flag" viewBox="0 0 3 2" role="img" aria-label="Україна"><rect width="3" height="1" fill="#0057B7"/><rect y="1" width="3" height="1" fill="#FFD700"/></svg>',
+  en:'<svg class="lang-flag" viewBox="0 0 60 40" role="img" aria-label="Велика Британія"><rect width="60" height="40" fill="#012169"/>' +
+     '<path d="M0 0L60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/>' +
+     '<path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="12"/><path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="7"/></svg>'
+};
+const LANGS = [ {id:'uk', html:`${FLAGS.uk} Українська`}, {id:'en', html:`${FLAGS.en} English`} ];
+const LANG_FLAG = FLAGS;
+
+/* ================= Повітряні кулі ================= */
+// Усі кулі — у viewBox 60×84: оболонка зверху, знизу кошик із пілотом
+// Пілот: у гравця — шолом, у комп'ютера — голова робота
+function pilot(kind, x, y, s=1){
+  return kind === 'bot'
+    ? `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-5" y="-5" width="10" height="9" rx="2.2" fill="#C9D3E6"/><circle cx="-2" cy="-.5" r="1.4" fill="#16A3A0"/><circle cx="2" cy="-.5" r="1.4" fill="#16A3A0"/><rect x="-.6" y="-8" width="1.2" height="3" fill="#C9D3E6"/><circle cx="0" cy="-8.5" r="1.3" fill="#FF5D9E"/></g>`
+    : `<g transform="translate(${x} ${y}) scale(${s})"><circle r="5" fill="#fff" stroke="#1B1B3A" stroke-width="1"/><path d="M-.5 -2.2 H4.6 A5 5 0 0 1 4.6 1.2 H-.5 Z" fill="#1B1B3A" opacity=".85"/><path d="M-4.5 -1.5 Q0 -4 3 -4.2" stroke="#FF5D9E" stroke-width="1.5" fill="none"/></g>`;
+}
+// Оболонка — «лінза» з півшириною w; смуги й візерунки — вкладені лінзи, тож clipPath не потрібен
+function lens(w, fill){
+  const m = Math.min(6, w * .23), mx = (w - m) * .35;
+  return `<path d="M30 2 C${30+w*.62} 2 ${30+w} 13 ${30+w} 29 C${30+w} 43 ${30+m+mx} 53 ${30+m} 59 H${30-m} C${30-m-mx} 53 ${30-w} 43 ${30-w} 29 C${30-w} 13 ${30-w*.62} 2 30 2 Z" fill="${fill}"/>`;
+}
+const star = (x, y, r, c='#fff') => `<path d="${Array.from({length:10}, (_, i)=>{ const a = Math.PI/5*i - Math.PI/2, q = i%2 ? r*.45 : r;
+  return `${i ? 'L' : 'M'}${(x + q*Math.cos(a)).toFixed(1)} ${(y + q*Math.sin(a)).toFixed(1)}`; }).join(' ')} Z" fill="${c}"/>`;
+const rhomb = (x, y, r, c) => `<path d="M${x} ${y-r} L${x+r} ${y} L${x} ${y+r} L${x-r} ${y} Z" fill="${c}"/>`;
+// Блиск, мотузки, пальник (вогонь видно, коли учень друкує — клас .burn), кошик із пілотом
+const SHINE = `<path d="M15 14 Q19 7 26 5.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".45"/>`;
+const basket = kind => `<path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width=".9"/>
+  <path d="M24.3 57 H35.7 L35 60 H25 Z" fill="#1B1B3A" opacity=".35"/>
+  <path class="flame" d="M30 50 Q34 55.5 30 59.5 Q26 55.5 30 50 Z" fill="#FFB020"/>
+  ${pilot(kind, 30, 64.5, .9)}
+  <rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/>
+  <path d="M21 72.5 H39 M21 76.5 H39" stroke="#8E5F28" stroke-width="1"/><path d="M25.5 69 V81 M30 69 V81 M34.5 69 V81" stroke="#8E5F28" stroke-width=".8" opacity=".6"/>
+  <rect x="20" y="67" width="20" height="2.6" rx="1.3" fill="#8E5F28"/>`;
+
+const BALLOONS = {
+  classic:{ name:'Смугаста', draw:(c,k)=>lens(27, c) + lens(18, '#fff') + lens(9, c) + SHINE + basket(k) },
+
+  patch:{ name:'Клаптикова', draw:(c,k)=>lens(27, c) +
+    [[11,17,9,9,'#FFC93C'],[33,8,9,8,'#fff'],[38,27,11,10,'#FFC93C'],[17,33,9,9,'#fff'],[26,20,8,7,'#3DDC84'],[29,40,8,8,'#fff'],[9,26,5,6,'#FF5D9E']]
+      .map(([x,y,w,h,f])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="${f}" stroke="#1B1B3A" stroke-width=".6" stroke-dasharray="1.6 1.2" opacity=".95"/>`).join('') +
+    SHINE + basket(k) },
+
+  stars:{ name:'Зоряна', draw:(c,k)=>lens(27, c) + lens(13, 'rgba(255,255,255,.18)') +
+    star(30, 15, 4.5) + star(16, 27, 3.5) + star(44, 27, 3.5) + star(30, 34, 5, '#FFE07A') + star(21, 44, 3) + star(39, 44, 3) + star(30, 50, 2.2) +
+    SHINE + basket(k) },
+
+  vyshyvanka:{ name:'Вишиванка', draw:(c,k)=>lens(27, '#FFFDF5') +
+    `<path d="M5.5 23 H54.5 M5.5 35 H54.5" stroke="#1B1B3A" stroke-width="1"/>` +
+    [8.5,15.5,22.5,29.5,36.5,43.5,51.5].map((x, i)=>rhomb(x, 29, 4.2, i%2 ? '#1B1B3A' : c) + rhomb(x, 29, 1.6, '#fff')).join('') +
+    [16,23,30,37,44].map((x, i)=>rhomb(x, 46, 2.8, i%2 ? c : '#1B1B3A')).join('') +
+    [20,30,40].map(x=>rhomb(x, 13, 2.4, c)).join('') +
+    SHINE + basket(k) },
+
+  sunflower:{ name:'Соняшник', draw:(c,k)=>lens(27, c) +
+    Array.from({length:14}, (_, i)=>`<ellipse cx="30" cy="16" rx="3.6" ry="8" fill="${i%2 ? '#FFC93C' : '#FFB020'}" transform="rotate(${i*360/14} 30 29)"/>`).join('') +
+    `<circle cx="30" cy="29" r="8.5" fill="#7A4A22"/>` +
+    Array.from({length:9}, (_, i)=>`<circle cx="${30 + (i%3-1)*4}" cy="${29 + (Math.floor(i/3)-1)*4}" r="1" fill="#C98E45"/>`).join('') +
+    SHINE + basket(k) },
+
+  firebird:{ name:'Жар-птиця', draw:(c,k)=>lens(27, c) +
+    `<path d="M10 46 Q4 30 14 18 Q14 30 21 35 Q17 22 26 9 Q28 24 33 30 Q35 18 44 12 Q42 26 48 30 Q52 24 51 17 Q56 34 46 50 Z" fill="#FF6B4A" opacity=".9"/>
+     <path d="M16 48 Q12 36 19 28 Q20 37 26 40 Q25 30 31 21 Q32 32 37 36 Q40 28 46 25 Q49 38 42 52 Z" fill="#FFC93C"/>
+     <circle cx="30" cy="44" r="4" fill="#16A3A0" stroke="#fff" stroke-width="1.4"/><circle cx="30" cy="44" r="1.6" fill="#1B1B3A"/>` +
+    SHINE + basket(k) }
+};
+function balloonSVG(model, color, kind){
+  return `<svg viewBox="0 0 60 84" aria-hidden="true">${BALLOONS[model].draw(color, kind)}</svg>`;
+}
+
+
+/* ================= Регіони ================= */
+const svgURL = s => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
+const tile = (w, h, body) => svgURL(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`);
+// Земля регіону: краєвид із пам'ятками в смузі 0–64 і передній план 64–80, куди сідає куля
+const groundTile = (w, body, fg) => tile(w, 80, body + `<rect y="63" width="${w}" height="17" fill="${fg}"/><rect y="63" width="${w}" height="2" fill="#000" opacity=".08"/>`);
+
+// Хмари: спільні для всіх регіонів, пливуть за вітром
+const cloud = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})" fill="#fff"><ellipse cx="0" cy="0" rx="22" ry="8"/><ellipse cx="-9" cy="-5" rx="10" ry="8"/><ellipse cx="7" cy="-7" rx="12" ry="10"/></g>`;
+const CLOUDS = tile(600, 120, cloud(60, 26, 1.1) + cloud(230, 62, .8) + cloud(390, 20, 1.3) + cloud(520, 78, .7) + cloud(160, 104, .55) + cloud(470, 110, .5));
+
+const chestnutTree = (x, y, r) => `<rect x="${x-1.5}" y="${y}" width="3" height="${64-y}" fill="#8B5A2B"/>
+    <circle cx="${x}" cy="${y-r*.4}" r="${r}" fill="#4E9F57"/><circle cx="${x-r*.5}" cy="${y-r*.1}" r="${r*.7}" fill="#5FAF63"/>
+    ${[[-.4,-.8],[.35,-.6],[-.1,-.2],[.55,0]].map(([dx,dy])=>`<ellipse cx="${x+dx*r}" cy="${y+dy*r-r*.3}" rx="1" ry="2" fill="#FFF8E7"/>`).join('')}`;
+const goldDome = (x, y, r) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*1.05}" fill="#F2C230"/><path d="M${x-r*.45} ${y-r*.8} L${x} ${y-r*2} L${x+r*.45} ${y-r*.8} Z" fill="#F2C230"/>
+    <path d="M${x} ${y-r*2} V${y-r*2.8} M${x-1.2} ${y-r*2.5} H${x+1.2}" stroke="#C99A1E" stroke-width=".8"/>`;
+const roundTree = (x, y, r, c='#4E9F57') => `<rect x="${x-1.5}" y="${y}" width="3" height="${64-y}" fill="#8B5A2B"/><circle cx="${x}" cy="${y-r*.3}" r="${r}" fill="${c}"/>`;
+const poplar = (x, h) => `<rect x="${x-1}" y="60" width="2" height="4" fill="#8B5A2B"/><ellipse cx="${x}" cy="${61-h/2}" rx="${h*.15}" ry="${h/2}" fill="#3E8E4F"/>`;
+const cypress = (x, h) => `<ellipse cx="${x}" cy="${64-h/2}" rx="${h*.12}" ry="${h/2}" fill="#2F6B45"/>`;
+function pine(x, h, c){
+  let s = `<rect x="${x-2}" y="58" width="4" height="6" fill="#8B5A2B"/>`;
+  for(let i=0;i<3;i++){
+    const top = 58 - h + i*h*0.28, base = top + h*0.45, half = h*(0.22 + i*0.06);
+    s += `<path d="M${x} ${top} L${x+half} ${base} H${x-half} Z" fill="${c}"/>`;
+  }
+  return s;
+}
+const flag = (x, y) => `<path d="M${x} 64 V${y}" stroke="#6E6C8A" stroke-width="1.4"/><rect x="${x+1}" y="${y}" width="11" height="4" fill="#2F6FD1"/><rect x="${x+1}" y="${y+4}" width="11" height="4" fill="#FFD23F"/>`;
+// Будинок із вікнами: [x, ширина, висота, колір]
+const house = ([x, w, h, c], roof) => { const y = 64 - h;
+  let b = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>` + (roof ? `<path d="M${x-1} ${y} L${x+w/2} ${y-w*.45} L${x+w+1} ${y} Z" fill="${roof}"/>` : '');
+  for(let wy = y+5; wy < 58; wy += 9) for(let wx = x+3; wx < x+w-4; wx += 6.5) b += `<rect x="${wx}" y="${wy}" width="3" height="4.5" fill="#FFF6C7"/>`;
+  return b; };
+
+// Київщина: Лаврська дзвіниця, Михайлівський собор, Батьківщина-Мати, синьо-жовтий прапор, Арка Свободи, каштани
+function kyivGround(){
+  const B = [[118,22,30,'#F2A97E'],[142,18,40,'#8E9AC8'],[222,24,34,'#7FC8C0'],[248,20,26,'#F5C76B'],[270,26,42,'#B79CE0'],[438,24,30,'#F2A97E']];
+  let s = '<path d="M0 52 Q60 38 130 48 T260 46 T400 44 T480 52 V64 H0 Z" fill="#A9D9A2"/>';   // київські пагорби
+  for(const [x,w,h,c] of B) s += house([x, w, h, c]);
+  // Велика Лаврська дзвіниця
+  s += `<rect x="28" y="36" width="30" height="28" fill="#F4F1E8"/><rect x="31" y="25" width="24" height="11" fill="#E3F0E7"/><rect x="34" y="16" width="18" height="9" fill="#F4F1E8"/>
+    <rect x="28" y="35" width="30" height="2" fill="#5FA77A"/><rect x="31" y="24" width="24" height="2" fill="#5FA77A"/><rect x="34" y="15" width="18" height="2" fill="#5FA77A"/>
+    ${[33,41,49].map(x=>`<path d="M${x} 50 V44 Q${x+2} 41 ${x+4} 44 V50 Z" fill="#9CC5AC"/>`).join('')}
+    ${[35,43].map(x=>`<path d="M${x} 33 V29 Q${x+2.5} 26.5 ${x+5} 29 V33 Z" fill="#9CC5AC"/>`).join('')}
+    ${goldDome(43, 11, 5)}`;
+  // Михайлівський Золотоверхий
+  s += `<rect x="68" y="42" width="40" height="22" fill="#7FB3E0"/><rect x="80" y="34" width="16" height="8" fill="#8FC0EA"/>
+    ${[73,81,95,103].map(x=>`<rect x="${x}" y="47" width="3" height="7" rx="1.5" fill="#fff"/>`).join('')}
+    ${goldDome(88, 29, 5)}${goldDome(73, 38, 3.2)}${goldDome(103, 38, 3.2)}`;
+  // Батьківщина-Мати
+  s += `<path d="M184 64 L189 42 H203 L208 64 Z" fill="#B8BFCC"/>
+    <path d="M192 42 L194.5 22 Q196 19 197.5 22 L200 42 Z" fill="#C9CFDA"/><circle cx="196" cy="18" r="2.4" fill="#C9CFDA"/>
+    <path d="M197.5 23 L203 9" stroke="#C9CFDA" stroke-width="2.2" stroke-linecap="round"/><path d="M202.5 10 L206 1" stroke="#EEF1F5" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="190.5" cy="28" rx="3.6" ry="4.4" fill="#AEB6C4"/>`;
+  // Великий синьо-жовтий прапор на щоглі
+  s += `<rect x="321.8" y="5" width="2.4" height="59" fill="#6E6C8A"/><circle cx="323" cy="4" r="2" fill="#F2C230"/>
+    <path d="M324 6 Q331 3 338 6 T352 6 V26 Q345 29 338 26 Q331 23 324 26 Z" fill="#FFD23F"/>
+    <path d="M324 6 Q331 3 338 6 T352 6 V16 Q345 19 338 16 Q331 13 324 16 Z" fill="#2F6FD1"/>`;   // спершу весь прапор жовтим, зверху синя половина з тією самою хвилею — без проміжку
+  // Арка Свободи
+  s += `<path d="M362 64 A24 24 0 0 1 410 64" fill="none" stroke="#9AA3B5" stroke-width="4"/>
+    <path d="M378 64 V54 H386 V64 M381 54 V50 H383 V54" fill="#B8BFCC"/>`;
+  s += chestnutTree(16, 50, 9) + chestnutTree(214, 52, 7) + chestnutTree(300, 50, 9) + chestnutTree(424, 52, 7) + chestnutTree(464, 50, 8);
+  return groundTile(480, s, '#7CC47F');
+}
+// Полтавщина: Біла альтанка, хати під стріхою, вітряк, соняшники, тополі
+const hut = x => `<rect x="${x}" y="48" width="34" height="16" fill="#FFFDF5"/><path d="M${x-5} 49 L${x+7} 36 H${x+27} L${x+39} 49 Z" fill="#D9A441"/>
+  <path d="M${x-5} 49 L${x+7} 36 H${x+27} L${x+39} 49" fill="none" stroke="#B5832B" stroke-width="1"/>
+  <rect x="${x+5}" y="52" width="7" height="6" fill="#7FB3E0" stroke="#2F6FD1" stroke-width=".8"/><rect x="${x+21}" y="52" width="7" height="12" fill="#8B5A2B"/>`;
+function poltavaGround(){
+  let s = '<path d="M0 50 Q80 34 170 46 T340 42 T480 50 V64 H0 Z" fill="#B5DE8E"/><path d="M0 57 Q120 50 240 56 T480 56 V64 H0 Z" fill="#9CCF6E"/>';
+  // Біла альтанка на кручі
+  s += `<rect x="42" y="40" width="36" height="4" fill="#fff"/>${[0,1,2,3,4,5,6].map(i=>`<rect x="${45+i*5}" y="26" width="2" height="14" fill="#fff"/>`).join('')}
+    <rect x="43" y="24" width="34" height="3" fill="#fff"/><path d="M45 24 Q60 9 75 24 Z" fill="#fff"/><path d="M60 12 V7" stroke="#C9CFDA" stroke-width="1.2"/>`;
+  s += hut(100) + hut(392);
+  // вітряк
+  s += `<path d="M193 64 L196 36 H206 L209 64 Z" fill="#9C6B3C"/><path d="M194 37 L201 28 L208 37 Z" fill="#6E4A27"/><rect x="198" y="52" width="6" height="12" fill="#5E3B22"/>
+    <g transform="rotate(22 201 34)" fill="#E9D3A8" stroke="#9C6B3C" stroke-width=".8"><rect x="199.5" y="9" width="3" height="50"/><rect x="176" y="32.5" width="50" height="3"/></g><circle cx="201" cy="34" r="2" fill="#5E3B22"/>`;
+  // соняшники
+  for(let i = 0; i < 13; i++) for(let j = 0; j < 2; j++){
+    const x = 246 + i*10 + j*5, y = 49 + j*7;
+    s += `<path d="M${x} ${y} V64" stroke="#5FA14A" stroke-width="1.2"/><circle cx="${x}" cy="${y}" r="3.6" fill="#FFC93C"/><circle cx="${x}" cy="${y}" r="1.6" fill="#7A4A22"/>`;
+  }
+  s += poplar(160, 40) + poplar(172, 34) + poplar(448, 40) + poplar(462, 32) + roundTree(18, 50, 9);
+  return groundTile(480, s, '#8CCB6A');
+}
+// Львівщина: Ратуша, Оперний театр, кам'яниці, Латинський собор, Високий замок
+function lvivGround(){
+  let s = '<path d="M370 64 Q420 28 476 64 Z" fill="#9BC78E"/>' + flag(424, 30);
+  s += [[0,20,32,'#F2C46B'],[20,18,28,'#E58F6F'],[38,22,34,'#9FC6E0'],[60,18,26,'#F4E3C1'],[78,20,30,'#B7D98F'],[98,22,28,'#E8A3B5'],
+        [196,20,30,'#F2C46B'],[300,18,28,'#E58F6F'],[340,22,32,'#9FC6E0']].map(b=>house(b, '#B5513A')).join('');
+  // Ратуша
+  s += `<rect x="128" y="42" width="62" height="22" fill="#E8DCC0"/>${[0,1,2,3,4,5,6].map(i=>`<rect x="${132+i*8}" y="47" width="4" height="7" fill="#9C8B6A"/>`).join('')}
+    <rect x="151" y="12" width="16" height="30" fill="#EFE5CF"/><rect x="149" y="10" width="20" height="3" fill="#C9B994"/>
+    <circle cx="159" cy="21" r="4.6" fill="#fff" stroke="#8A6A30" stroke-width="1"/><path d="M159 21 V18 M159 21 L161.4 22" stroke="#1B1B3A" stroke-width=".9"/>
+    <rect x="154" y="4" width="10" height="6" fill="#EFE5CF"/><path d="M153 4 Q159 -4 165 4 Z" fill="#6FA88A"/><circle cx="159" cy="1" r="1.3" fill="#F2C230"/>`;
+  // Оперний театр
+  s += `<rect x="226" y="40" width="68" height="24" fill="#F1E6CE"/>${[0,1,2,3,4,5].map(i=>`<rect x="${240+i*7.5}" y="44" width="2.4" height="16" fill="#D9C9A3"/>`).join('')}
+    <path d="M226 40 L260 30 L294 40 Z" fill="#E3D3AF"/><path d="M248 32 Q260 16 272 32 Z" fill="#6FA88A"/><circle cx="260" cy="16" r="2.4" fill="#F2C230"/>
+    <circle cx="231" cy="37" r="2" fill="#F2C230"/><circle cx="289" cy="37" r="2" fill="#F2C230"/>`;
+  // Латинський собор
+  s += `<rect x="322" y="20" width="12" height="44" fill="#D9CDB0"/><path d="M322 20 L328 2 L334 20 Z" fill="#6FA88A"/><path d="M325 38 V30 Q328 26 331 30 V38 Z" fill="#9C8B6A"/>`;
+  return groundTile(480, s, '#B9B3A8');
+}
+// Поділля: Кам'янець-Подільська фортеця над каньйоном Смотрича
+const tower = (x, y, w, roof='#C8553D') => `<rect x="${x}" y="${y}" width="${w}" height="${64-y}" fill="#E6DCC4"/><path d="M${x-2} ${y} L${x+w/2} ${y-w*1.1} L${x+w+2} ${y} Z" fill="${roof}"/>
+  <rect x="${x+w/2-1.5}" y="${y+6}" width="3" height="5" rx="1.5" fill="#6E6C8A"/>`;
+function podilliaGround(){
+  let s = '<path d="M0 46 Q120 30 240 40 T480 38 V64 H0 Z" fill="#B8DA9A"/>';
+  s += '<path d="M0 64 V48 Q40 44 92 46 L118 50 Q140 60 170 60 L200 50 Q240 44 300 46 L480 48 V64 Z" fill="#CDB892"/>';
+  s += '<path d="M116 64 Q140 57 172 57 Q192 58 204 64 Z" fill="#6FB7E0"/>';
+  // міст і фортеця
+  s += `<path d="M168 50 Q186 38 204 50" fill="none" stroke="#B5A27A" stroke-width="3"/>`;
+  s += `<rect x="226" y="32" width="112" height="16" fill="#E6DCC4"/>${Array.from({length:14}, (_, i)=>`<rect x="${227+i*8}" y="28" width="5" height="4" fill="#E6DCC4"/>`).join('')}`;
+  s += tower(220, 26, 14) + tower(256, 18, 16) + tower(292, 22, 12, '#B5483A') + tower(330, 24, 14);
+  // містечко на лівому березі
+  s += [[20,16,22,'#F4E3C1'],[40,18,26,'#F2C46B'],[64,16,20,'#E8A3B5']].map(b=>house(b, '#B5513A')).join('');
+  s += `<rect x="90" y="36" width="14" height="12" fill="#fff"/><path d="M90 36 Q97 26 104 36 Z" fill="#6FA88A"/><path d="M97 28 V22 M95 24.5 H99" stroke="#C99A1E" stroke-width="1"/>`;
+  s += roundTree(380, 48, 8) + roundTree(410, 46, 10, '#5FAF63') + roundTree(450, 48, 8);
+  return groundTile(480, s, '#8CC774');
+}
+// Карпати: Говерла, смереки, дерев'яна церква, колиба, вівці
+function carpathiansGround(){
+  let s = '<path d="M0 64 L40 30 L78 46 L130 12 L176 42 L222 24 L268 46 L320 18 L368 40 L420 22 L480 50 V64 Z" fill="#7FA88A"/>';
+  s += '<path d="M130 12 L138 20 L133 19 L130 22 L127 19 L122 20 Z" fill="#fff"/><path d="M320 18 L327 25 L320 24 L313 25 Z" fill="#fff"/>';
+  s += '<path d="M0 64 Q60 40 120 54 T240 50 T360 52 T480 56 V64 Z" fill="#4E8F5A"/>';
+  s += [[14,30],[30,40],[52,26],[88,34],[104,26],[150,38],[166,28],[262,34],[280,40],[300,28],[396,36],[414,28],[460,38]].map(([x,h])=>pine(x, h, '#24704A')).join('');
+  // дерев'яна церква
+  s += `<rect x="188" y="46" width="26" height="18" fill="#9C6B3C"/><path d="M184 47 L201 36 L218 47 Z" fill="#5E3B22"/><rect x="195" y="30" width="12" height="7" fill="#9C6B3C"/>
+    <path d="M192 31 L201 22 L210 31 Z" fill="#5E3B22"/><path d="M201 22 V14 M198 17 H204" stroke="#C99A1E" stroke-width="1.2"/><rect x="198" y="54" width="6" height="10" fill="#5E3B22"/>`;
+  // колиба
+  s += `<rect x="334" y="50" width="26" height="14" fill="#B07A44"/><path d="M330 51 L347 38 L364 51 Z" fill="#6E4A27"/><rect x="343" y="55" width="6" height="9" fill="#5E3B22"/>`;
+  // вівці
+  s += [[236,58],[246,60],[440,59]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="3.4" fill="#fff"/><circle cx="${x+5}" cy="${y-1}" r="1.8" fill="#514F72"/>`).join('');
+  return groundTile(480, s, '#6DB46F');
+}
+// Харківщина: Держпром, Благовіщенський собор, Дзеркальний струмінь
+function kharkivGround(){
+  let s = '<path d="M0 54 Q120 44 240 52 T480 50 V64 H0 Z" fill="#B5DE8E"/>';
+  // Держпром: брили різної висоти з переходами між ними
+  const D = [[30,28,28],[64,24,40],[94,34,52],[134,24,40],[164,28,28]];
+  s += D.map(([x,w,h])=>{ const y = 64 - h;
+    let b = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#C7CCD6"/>`;
+    for(let wy = y+4; wy < 60; wy += 6) b += `<rect x="${x+2}" y="${wy}" width="${w-4}" height="2.6" fill="#8E98AD"/>`;
+    return b; }).join('');
+  s += `<rect x="58" y="34" width="6" height="4" fill="#C7CCD6"/><rect x="88" y="26" width="6" height="4" fill="#C7CCD6"/><rect x="128" y="26" width="6" height="4" fill="#C7CCD6"/><rect x="158" y="34" width="6" height="4" fill="#C7CCD6"/>`;
+  // Благовіщенський собор: смугаста дзвіниця
+  s += `<rect x="232" y="40" width="40" height="24" fill="#E8A3A0"/>${Array.from({length:4}, (_, i)=>`<rect x="232" y="${43+i*6}" width="40" height="2.4" fill="#fff"/>`).join('')}
+    ${goldDome(252, 34, 6)}${goldDome(238, 38, 3)}${goldDome(266, 38, 3)}
+    <rect x="280" y="14" width="12" height="50" fill="#E8A3A0"/>${Array.from({length:8}, (_, i)=>`<rect x="280" y="${17+i*6}" width="12" height="2.4" fill="#fff"/>`).join('')}${goldDome(286, 10, 4)}`;
+  // Дзеркальний струмінь
+  s += `<ellipse cx="390" cy="61" rx="34" ry="4" fill="#9FD4F0"/><rect x="372" y="34" width="36" height="3" fill="#fff"/>
+    ${[374,382,390,398,406].map(x=>`<rect x="${x-1}" y="37" width="2" height="22" fill="#fff"/>`).join('')}
+    <path d="M370 34 Q390 26 410 34 Z" fill="#fff"/><path d="M386 59 Q390 46 394 59" fill="none" stroke="#CDEBFA" stroke-width="1.5"/>`;
+  s += roundTree(206, 50, 9) + roundTree(322, 48, 10, '#5FAF63') + roundTree(344, 52, 7) + roundTree(452, 48, 10) + roundTree(470, 52, 7, '#5FAF63');
+  return groundTile(480, s, '#7CC47F');
+}
+// Одещина: Оперний театр, Потьомкінські сходи, маяк, вітрильник, портові крани, море
+function odesaGround(){
+  let s = '<rect y="42" width="480" height="22" fill="#5FB0E0"/>';
+  s += [[200,50],[330,47],[420,56],[60,58]].map(([x,y])=>`<path d="M${x} ${y} q4 -2 8 0 t8 0" fill="none" stroke="#CDEBFA" stroke-width="1.2"/>`).join('');
+  // Оперний театр
+  s += `<rect x="20" y="38" width="72" height="26" fill="#F2E2C2"/>${[0,1,2,3,4,5,6,7].map(i=>`<rect x="${26+i*8.4}" y="44" width="2.6" height="16" fill="#D9C39A"/>`).join('')}
+    <path d="M40 38 Q56 18 72 38 Z" fill="#7FB7A8"/><circle cx="56" cy="20" r="2.2" fill="#F2C230"/><path d="M18 38 Q26 28 34 38 Z" fill="#7FB7A8"/><path d="M78 38 Q86 28 94 38 Z" fill="#7FB7A8"/>`;
+  // Потьомкінські сходи з Дюком
+  s += `<path d="M110 64 L126 40 H146 L162 64 Z" fill="#E8DCC4"/>${Array.from({length:6}, (_, i)=>`<path d="M${112+i*2.7} ${61-i*4} H${160-i*2.7}" stroke="#C9BBA0" stroke-width=".9"/>`).join('')}
+    <rect x="134" y="33" width="4" height="7" fill="#7FA6A0"/><circle cx="136" cy="31" r="2" fill="#7FA6A0"/>`;
+  // вітрильник
+  s += `<path d="M196 56 H226 L220 62 H202 Z" fill="#fff"/><path d="M210 55 V30" stroke="#6E6C8A" stroke-width="1.2"/><path d="M211 31 L224 53 H211 Z" fill="#fff"/><path d="M209 34 L199 53 H209 Z" fill="#FF6B4A"/>`;
+  // маяк на молу
+  s += `<rect x="262" y="58" width="64" height="6" fill="#BFB7A6"/><path d="M290 58 L293 24 H301 L304 58 Z" fill="#fff"/><rect x="291" y="17" width="12" height="7" fill="#E8453C"/>
+    <path d="M290 17 L297 11 L304 17 Z" fill="#E8453C"/><rect x="294" y="19" width="6" height="3" fill="#FFE07A"/>`;
+  // портові крани
+  s += [380, 430].map(x=>`<path d="M${x} 58 V20 M${x+8} 58 V20" stroke="#F29A3C" stroke-width="2"/>${[26,34,42,50].map(y=>`<path d="M${x} ${y} L${x+8} ${y+8}" stroke="#F29A3C" stroke-width="1"/>`).join('')}
+    <path d="M${x-14} 20 H${x+30}" stroke="#F29A3C" stroke-width="2.4"/><path d="M${x+26} 21 V36" stroke="#6E6C8A" stroke-width=".8"/><rect x="${x-2}" y="58" width="12" height="6" fill="#BFB7A6"/>`).join('');
+  s += [[180,16],[250,10],[350,22]].map(([x,y])=>`<path d="M${x} ${y} q3 -3 6 0 q3 -3 6 0" fill="none" stroke="#514F72" stroke-width="1"/>`).join('');
+  return groundTile(480, s, '#F2D9A4');
+}
+// Херсонщина: Олешківські піски, Аджигольський маяк, кавуни, сосни
+function khersonGround(){
+  let s = '<path d="M0 64 Q40 40 90 52 Q140 34 200 50 Q260 38 320 52 Q380 40 440 50 Q470 46 480 48 V64 Z" fill="#F2D08A"/>';
+  s += '<path d="M90 52 Q140 34 150 40 Q130 48 120 64 H96 Z M320 52 Q380 40 390 46 Q370 52 362 64 H330 Z" fill="#E5B96A"/>';
+  // Аджигольський маяк — ґратчаста вежа
+  s += `<g stroke="#C8553D" stroke-width=".9" fill="none">${Array.from({length:7}, (_, i)=>`<path d="M${390+i*4} 64 L${(406-i*8/6).toFixed(1)} 12"/><path d="M${414-i*4} 64 L${(398+i*8/6).toFixed(1)} 12"/>`).join('')}
+    <path d="M395 52 H411 M397 38 H409 M399 24 H407"/></g><rect x="397" y="6" width="10" height="7" fill="#fff" stroke="#C8553D" stroke-width="1"/><rect x="399" y="2" width="6" height="4" fill="#E8453C"/>`;
+  // сосни й кущі
+  s += [[24,30],[40,24],[250,28],[268,22],[460,26]].map(([x,h])=>pine(x, h, '#3E8E4F')).join('');
+  // кавуни на баштані
+  s += [[150,60],[168,61],[186,59],[204,61],[300,60]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="6" ry="4.4" fill="#3FA66B"/><path d="M${x-4} ${y-2} q4 2 8 0 M${x-5} ${y+1} q5 2 10 0" stroke="#24704A" stroke-width="1" fill="none"/>`).join('');
+  return groundTile(480, s, '#E9C77E');
+}
+// Запорізька: ДніпроГЕС, Дніпро, Хортиця, козацька Січ, чайка
+function zaporizhzhiaGround(){
+  let s = '<rect y="46" width="480" height="18" fill="#5FA8D8"/>';
+  // ДніпроГЕС: гребля з арками
+  s += `<rect x="0" y="34" width="200" height="8" fill="#B8BFCC"/>${Array.from({length:12}, (_, i)=>`<path d="M${2+i*16.5} 64 V46 Q${10+i*16.5} 40 ${18+i*16.5} 46 V64" fill="#9AA3B5"/>`).join('')}
+    <rect x="0" y="42" width="200" height="4" fill="#9AA3B5"/>${[20,70,120,170].map(x=>`<rect x="${x}" y="26" width="10" height="8" fill="#C9CFDA"/>`).join('')}`;
+  // Хортиця і Січ
+  s += '<path d="M222 64 Q262 36 320 40 Q380 30 440 42 L480 44 V64 Z" fill="#9C8F6E"/><path d="M240 50 Q262 38 320 42 Q380 32 440 44 L480 46 V48 Q380 38 320 46 Q270 44 240 52 Z" fill="#7DAA6A"/>';
+  s += `${Array.from({length:22}, (_, i)=>`<path d="M${312+i*4} 46 V34 L${314+i*4} 31 L${316+i*4} 34 V46 Z" fill="#8B5A2B"/>`).join('')}
+    <rect x="340" y="18" width="14" height="16" fill="#A0703F"/><path d="M337 18 L347 8 L357 18 Z" fill="#6E4A27"/>
+    <rect x="370" y="22" width="18" height="12" fill="#B07A44"/><path d="M372 22 Q379 12 386 22 Z" fill="#7A9A6A"/><path d="M379 14 V8 M377 10.5 H381" stroke="#C99A1E" stroke-width="1"/>`;
+  // чайка
+  s += `<path d="M228 58 H264 L258 63 H234 Z" fill="#8B5A2B"/><path d="M246 57 V38" stroke="#6E4A27" stroke-width="1.2"/><path d="M247 39 Q258 46 247 54 Z" fill="#F4F1E8"/>`;
+  return groundTile(480, s, '#8FBF6F');
+}
+// Крим: Ай-Петрі, Ластівчине гніздо, кипариси, виноградники, море
+function crimeaGround(){
+  let s = '<path d="M0 64 L30 40 L64 30 L86 18 L92 24 L98 13 L104 21 L110 11 L116 21 L148 34 L206 44 L240 64 Z" fill="#9AA88E"/>';
+  s += '<path d="M110 11 L116 21 L148 34 L206 44 L240 64 H140 Z" fill="#87957C"/>';
+  s += '<rect x="236" y="44" width="244" height="20" fill="#4FA6D8"/>' + [[300,52],[380,48],[440,58]].map(([x,y])=>`<path d="M${x} ${y} q4 -2 8 0 t8 0" fill="none" stroke="#CDEBFA" stroke-width="1.2"/>`).join('');
+  // Ластівчине гніздо на скелі
+  s += `<path d="M262 64 L272 42 L300 38 L312 64 Z" fill="#B8A88A"/><rect x="276" y="28" width="22" height="11" fill="#F4F1E8"/>
+    <rect x="281" y="17" width="9" height="11" fill="#F4F1E8"/><path d="M280 17 L285.5 7 L291 17 Z" fill="#C8553D"/>${[279,286,293].map(x=>`<rect x="${x}" y="31" width="2.4" height="5" fill="#9C8B6A"/>`).join('')}`;
+  s += [16, 26, 160, 176, 228, 330, 470].map((x, i)=>cypress(x, 26 + (i%3)*6)).join('');
+  // виноградник
+  s += Array.from({length:4}, (_, r)=>Array.from({length:8}, (_, i)=>`<circle cx="${150+i*9+r*3}" cy="${50+r*4}" r="2" fill="#5F9E4F"/>`).join('')).join('');
+  return groundTile(480, s, '#C9D79A');
+}
+
+// Значок Києва — листок каштана (емодзі такого листка немає): п'ять широких листочків віялом
+const KYIV_LEAF = (()=>{
+  const leaf = 'M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z';
+  const veins = 'M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3';
+  const g = (a, s) => `<g transform="rotate(${a} 12 14) translate(12 14) scale(${s}) translate(-12 -14)"><path d="${leaf}" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/>` +
+    `<path d="${veins}" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g>`;
+  return `<svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/>` +
+    `${g(-86, .72)}${g(86, .72)}${g(-43, .9)}${g(43, .9)}${g(0, 1)}</svg>`;
+})();
+// base — нейрончики за регіон; sky — небо згори донизу; fx — ефект
+const TRACKS = [
+  {id:'kyiv',         name:'Київщина',     emoji:KYIV_LEAF, base:4,  sky:['#8FD3FF','#E3F5FF'], ground:kyivGround()},
+  {id:'poltava',      name:'Полтавщина',   emoji:'🌻', base:5,  sky:['#A4DCFF','#FFF6D8'], ground:poltavaGround(), fx:'sun'},
+  {id:'lviv',         name:'Львівщина',    emoji:'🦁', base:6,  sky:['#A9BCD0','#E4ECF3'], ground:lvivGround(), fx:'rain'},
+  {id:'podillia',     name:'Поділля',      emoji:'🏰', base:7,  sky:['#8CCBF5','#EAF6FF'], ground:podilliaGround()},
+  {id:'carpathians',  name:'Карпати',      emoji:'🌲', base:8,  sky:['#7CC4EE','#DDF2E6'], ground:carpathiansGround(), fx:'leaves'},
+  {id:'kharkiv',      name:'Харківщина',   emoji:'🏛️', base:9,  sky:['#94CFF7','#F0F8FF'], ground:kharkivGround()},
+  {id:'odesa',        name:'Одещина',      emoji:'⚓', base:10, sky:['#6FC3FF','#E6F7FF'], ground:odesaGround()},
+  {id:'kherson',      name:'Херсонщина',   emoji:'🍉', base:11, sky:['#78C6F5','#FFEFD0'], ground:khersonGround(), fx:'sun'},
+  {id:'zaporizhzhia', name:'Запоріжжя',    emoji:'⚔️', base:13, sky:['#84C3F0','#FCE9D6'], ground:zaporizhzhiaGround()},
+  {id:'crimea',       name:'Крим',         emoji:'⛰️', base:15, sky:['#6FB8EE','#FFE6C7'], ground:crimeaGround(), fx:'sun'}
+];
+const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
+
+
+/* ================= Складність: регіон → текст, куля → суперник ================= */
+// По два регіони на кожен рівень тексту
+const TRACK_LEVEL = { kyiv:'home', poltava:'home', lviv:BOOST ? 'words' : 'top', podillia:BOOST ? 'words' : 'top', carpathians:'words', kharkiv:'words',
+                      odesa:'sentences', kherson:'sentences', zaporizhzhia:'long', crimea:'long' };
+const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки', ukpunct:'розділові знаки', digits:'цифри', code:'код', drill:'слабкі клавіші' };
+const stageLevel = ([track, , level]) => level || TRACK_LEVEL[track];
+const BALLOON_ORDER = ['classic','patch','stars','vyshyvanka','sunflower','firebird'];
+const BALLOON_CPM = BOOST ? { classic:35, patch:50, stars:65, vyshyvanka:80, sunflower:100, firebird:125 }
+                          : { classic:12, patch:16, stars:20, vyshyvanka:25, sunflower:30, firebird:40 };
+const BOT_COLOR = '#6C5CE7';
+// Підтримка для початківців (не діє у змаганнях pro і в ?boost, окрім робота під учня, і в день робота — див. ROBOT_DAY):
+// delay — робот рушає на стільки секунд пізніше;
+// поки дитина друкує, робот, що випередив її (більш ніж на lead знаків), плавно (ease) збавляє швидкість
+// до ratio від середньої швидкості дитини, але не нижче min від своєї — тож гонка йде впритул;
+// якщо дитина зупинилась — не натискає правильну клавішу вдвічі (idle) довше за свій звичайний проміжок
+// між натисканнями, але щонайменше idleMs мілісекунд, — робот їде на повній швидкості
+const ASSIST = { delay:2.5, lead:0, ratio:0.9, min:0.5, idle:2, idleMs:4000, ease:1.5 };
+// Перемога зі швидкістю від PRO_CPM зн/хв і точністю від 90% відкриває змагання pro
+const PRO_CPM = 45;
+// Налаштування вчителя в адресі (лише для вільних польотів, змагання не змінюються):
+// ?robot=8 — швидкість робота 8 зн/хв для будь-якої кулі (від 3 до 150);
+// ?bez-robota — тренування без суперника
+const TEACHER = (()=>{
+  const q = new URLSearchParams(location.search);
+  const cpm = Math.round(+q.get('robot'));
+  return { cpm: cpm >= 3 && cpm <= 150 ? cpm : 0, noBot: q.has('bez-robota') };
+})();
+// Робот під гравця: перший політ заміряє швидкість учня, далі робот їде трохи повільніше за неї — PACE_RATIO
+// від швидкості учня на цьому рівні тексту (у вільному польоті на новому рівні — від загальної). Чим крутіша куля,
+// тим ближче робот до учня; вирвавшись уперед, він пригальмовує (ASSIST), тож гонка йде впритул.
+// День робота: приблизно в кожному шостому польоті (ROBOT_DAY.chance, але не двічі поспіль) робот їде швидше
+// за звичну швидкість учня (ROBOT_DAY.ratio) і не пригальмовує — учень виграє, лише якщо надрукує краще, ніж зазвичай.
+// Поки швидкість не заміряна, робот летить зі швидкістю кулі (BALLOON_CPM).
+// Після кожного польоту (крім тренування клавіш) швидкість учня оновлюється: швидший політ важить up,
+// повільніший — down, щоб один невдалий політ не робив робота зовсім повільним
+const PACE_RATIO = { classic:0.84, patch:0.86, stars:0.88, vyshyvanka:0.9, sunflower:0.92, firebird:0.94 };
+const PACE_EMA = { up:0.5, down:0.25, minChars:10 };
+const ROBOT_DAY = { chance:0.2, ratio:1.1 };
+const paceKey = (lang, level) => `${lang}-${level}`;
+const paceOf = (lang, level, orAll) => profile.pace?.[paceKey(lang, level)] || (orAll && profile.pace?.all) || 0;
+let lastRobotDay = false;
+function rollRobotDay(){ return lastRobotDay = !lastRobotDay && Math.random() < ROBOT_DAY.chance; }
+// Швидкість робота: під учня (p — його швидкість на цьому тексті), але не нижче floor.
+// У змаганні floor — норматив: учневі, повільнішому за нього, лишається робот за нормативом
+function botFor(p, model, floor, day){
+  const cpm = p && model ? Math.min(200, Math.max(3, Math.round(p * (day ? ROBOT_DAY.ratio : PACE_RATIO[model])))) : 0;
+  return cpm > floor ? { cpm, paced:true, day } : { cpm:floor, paced:false, day:day && !!p };
+}
+function updatePace(lang, level, speed){
+  const pace = profile.pace ||= {};
+  for(const k of [paceKey(lang, level), 'all']){
+    const old = pace[k];
+    pace[k] = old ? Math.round((old + (speed - old) * (speed > old ? PACE_EMA.up : PACE_EMA.down)) * 10) / 10 : speed;
+  }
+}
+
+/* ================= Нейрончики й розблокування ================= */
+const UNLOCKS = [
+  { kind:'balloon', id:'classic',      at:0 },
+  { kind:'track',   id:'kyiv',         at:0 },
+  { kind:'track',   id:'poltava',      at:20 },
+  { kind:'balloon', id:'patch',        at:30 },
+  { kind:'track',   id:'lviv',         at:45 },
+  { kind:'track',   id:'podillia',     at:70 },
+  { kind:'balloon', id:'stars',        at:110 },
+  { kind:'track',   id:'carpathians',  at:150 },
+  { kind:'track',   id:'kharkiv',      at:200 },
+  { kind:'balloon', id:'vyshyvanka',   at:270 },
+  { kind:'track',   id:'odesa',        at:330 },
+  { kind:'track',   id:'kherson',      at:400 },
+  { kind:'balloon', id:'sunflower',    at:480 },
+  { kind:'track',   id:'zaporizhzhia', at:560 },
+  { kind:'track',   id:'crimea',       at:650 },
+  { kind:'balloon', id:'firebird',     at:750 }
+];
+const unlockAt = (kind, id) => UNLOCKS.find(u=>u.kind===kind && u.id===id).at;
+const isOpen = (kind, id, n = profile.neurons) => n >= unlockAt(kind, id);
+
+// Нейрончики за політ: (складність регіону + RIDE_PTS) × точність + бонус за перемогу + FASTER_PTS, якщо учень надрукував
+// швидше, ніж зазвичай на цьому тексті. Куля приземлилась раніше — перша частина лише за ту частку хвилини, що була в повітрі (flown).
+// За саму швидкість нейрончиків немає: політ завжди триває хвилину, тож регіони й кулі відкриваються за час гри й точність
+const RIDE_PTS = 4, FASTER_PTS = 3;
+function neuronsFor(r){
+  const base = TRACKS[trackIdx(r.track)].base;
+  const [a1, a2, a3] = BOOST ? [95, 90, 80] : [90, 80, 70];
+  const mult = r.errors === 0 && !r.landed ? 1.5 : r.acc >= a1 ? 1.2 : r.acc >= a2 ? 1 : r.acc >= a3 ? 0.6 : 0.3;
+  const win = r.won ? base : 0;
+  const faster = r.faster ? FASTER_PTS : 0;
+  return { base, ride:RIDE_PTS, mult, win, faster, total: Math.round((base + RIDE_PTS) * mult * r.flown) + win + faster };
+}
+const NEURON = `<svg class="nico" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
+  <line x1="14.1" y1="15.6" x2="16.6" y2="20" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.6" cy="20" r="1.2" fill="#FFC93C"/>
+  <line x1="9.9" y1="15.6" x2="7.4" y2="20" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="7.4" cy="20" r="1.2" fill="#FFC93C"/>
+  <line x1="7.8" y1="12" x2="3.7" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="3.7" cy="12" r="1.2" fill="#FFC93C"/>
+  <line x1="9.9" y1="8.4" x2="7.4" y2="4" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="7.4" cy="4" r="1.2" fill="#FFC93C"/>
+  <line x1="14.1" y1="8.4" x2="16.6" y2="4" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.6" cy="4" r="1.2" fill="#FFC93C"/>
+  <circle cx="12" cy="12" r="4.4" fill="#FFC93C"/><circle cx="12" cy="12" r="1.6" fill="#E0A800" opacity="0.6"/></svg>`;
+
+/* ================= Бейджики змагань ================= */
+// Малюються у квадраті 40×40 з білою «вирубкою» навколо
+const OUT = 'stroke="#fff" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke"';
+const BADGES = {
+  chestnut:`<g fill="#3FA66B" ${OUT}><ellipse cx="20" cy="10" rx="4" ry="8.5"/><ellipse cx="20" cy="10" rx="4" ry="8.5" transform="rotate(-55 20 18)"/><ellipse cx="20" cy="10" rx="4" ry="8.5" transform="rotate(55 20 18)"/></g>
+    <circle cx="20" cy="25" r="11" fill="#8B4A22" ${OUT}/><path d="M10.5 28.5 Q20 36.5 29.5 28.5 Q27.5 35.5 20 35.6 Q12.5 35.5 10.5 28.5 Z" fill="#E9C99A"/><ellipse cx="16" cy="20" rx="3" ry="2" fill="#fff" opacity=".45"/>`,
+  compass:`<circle cx="20" cy="20" r="16" fill="#E8A33D" ${OUT}/><circle cx="20" cy="20" r="12" fill="#fff"/>
+    <path d="M20 9 L23.5 20 H16.5 Z" fill="#E8453C"/><path d="M20 31 L23.5 20 H16.5 Z" fill="#1B1B3A"/><circle cx="20" cy="20" r="2" fill="#fff"/>`,
+  flame:`<path d="M20 3 Q31 13 30 23 Q29.5 35.5 20 36 Q10.5 35.5 10.5 24 Q10.5 16 17 11 Q17 18 21.5 19.5 Q19 10 20 3 Z" fill="#FF6B4A" ${OUT}/>
+    <path d="M20 17 Q26.5 23 25.5 28.5 Q24.5 33 20 33 Q15 33 15 28 Q15 22.5 20 17 Z" fill="#FFC93C"/>`,
+  laurel:`<circle cx="20" cy="20" r="16.5" fill="#fff" ${OUT}/>
+    ${[110,135,160,185,210,70,45,20,-5,-30].map(a=>{ const r=a*Math.PI/180, x=(20+12.5*Math.cos(r)).toFixed(1), y=(20+12.5*Math.sin(r)).toFixed(1);
+      return `<ellipse cx="${x}" cy="${y}" rx="2.2" ry="4.2" fill="#3FA66B" transform="rotate(${a} ${x} ${y})"/>`; }).join('')}
+    <text x="20" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="12" fill="#1B1B3A">UA</text>`,
+  crown:`<path d="M5 30 L4 11 L13 19 L20 7 L27 19 L36 11 L35 30 Z" fill="#FFC93C" ${OUT}/><rect x="5" y="28.5" width="30" height="5.5" rx="1.5" fill="#E8A33D" stroke="#fff" stroke-width="2.5" paint-order="stroke"/>
+    <circle cx="20" cy="22" r="2.6" fill="#FF5D9E"/><circle cx="12" cy="24.5" r="1.8" fill="#16A3A0"/><circle cx="28" cy="24.5" r="1.8" fill="#6C5CE7"/>`
+};
+BADGES.bubble = `<path d="M5 9 Q5 4 10 4 H30 Q35 4 35 9 V24 Q35 29 30 29 H17 L9 36 L10.5 29 H10 Q5 29 5 24 Z" fill="#FF5D9E" ${OUT}/>
+    <text x="20" y="23.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="16" fill="#fff">?!</text>`;
+BADGES.quotes = `<path d="M5 9 Q5 4 10 4 H30 Q35 4 35 9 V24 Q35 29 30 29 H17 L9 36 L10.5 29 H10 Q5 29 5 24 Z" fill="#16A3A0" ${OUT}/>
+    <text x="20" y="23" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="15" fill="#fff">,:'</text>`;
+BADGES.code = `<rect x="3" y="6" width="34" height="28" rx="6" fill="#1B1B3A" ${OUT}/>
+    <text x="20" y="25" text-anchor="middle" font-family="Consolas, monospace" font-weight="900" font-size="13" fill="#FFC93C">&lt;/&gt;</text>`;
+BADGES.sunflower = `${Array.from({length:12}, (_, i)=>`<ellipse cx="20" cy="7" rx="3.6" ry="7" fill="#FFC93C" ${OUT} transform="rotate(${i*30} 20 20)"/>`).join('')}
+    <circle cx="20" cy="20" r="8" fill="#7A4A22"/><circle cx="17" cy="18" r="1.3" fill="#C98E45"/><circle cx="22" cy="21" r="1.3" fill="#C98E45"/><circle cx="18" cy="23" r="1.3" fill="#C98E45"/>`;
+BADGES.balloon = `<path d="M20 2 C31 2 36 10 36 18 C36 26 27 31 23 34 H17 C13 31 4 26 4 18 C4 10 9 2 20 2 Z" fill="#FF6B4A" ${OUT}/>
+    <path d="M20 2 C25 2 27 10 27 18 C27 26 22 31 21.5 34 H18.5 C18 31 13 26 13 18 C13 10 15 2 20 2 Z" fill="#FFC93C"/>
+    <rect x="15.5" y="34" width="9" height="5" rx="1.2" fill="#C08A45" stroke="#fff" stroke-width="1.5" paint-order="stroke"/>`;
+BADGES.lantern = `<rect x="18.5" y="2" width="3" height="6" fill="#514F72" ${OUT}/><path d="M12 10 H28 L26 30 H14 Z" fill="#FFC93C" ${OUT}/>
+    <path d="M10 10 L20 4 L30 10 Z" fill="#514F72"/><path d="M13 30 H27 V34 H13 Z" fill="#514F72"/><path d="M20 12 V28 M15 20 H25" stroke="#E8A33D" stroke-width="1.4"/>`;
+BADGES.anchor = `<circle cx="20" cy="20" r="17" fill="#2D9CDB" ${OUT}/><g stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none">
+    <circle cx="20" cy="9.5" r="2.8"/><path d="M20 12.5 V31 M14 17 H26 M10 23 Q12 31 20 31 Q28 31 30 23"/></g>`;
+const badgeHTML = (id, title='') => BADGES[id] ? `<span class="badge-ico"${title ? ` title="${esc(title)}"` : ''}><svg viewBox="-2 -2 44 44" aria-hidden="true">${BADGES[id]}</svg></span>` : '';
+
+/* ================= Змагання ================= */
+// stages — [регіон, мова, текст?] кожного етапу (текст — рівень з TEXTS, за замовчуванням — за регіоном); cpm — швидкість робота-суперника; balloons — дозволені кулі (null — будь-яка);
+// pro — змагання видно лише гравцям із результатом, незвичним для 2–3 класу (див. PRO_CPM)
+const COMPS = [
+  { id:'kyiv', name:'Кубок Києва', badge:'chestnut', cpm:12, minAcc:70, balloons:null,
+    desc:'Три польоти над столицею. Найкраще змагання для першого старту.',
+    stages:[['kyiv','uk'],['kyiv','uk'],['kyiv','uk']] },
+  { id:'poltava', name:'Сорочинський ярмарок', badge:'sunflower', cpm:14, minAcc:72, balloons:null,
+    desc:'З Києва — на ярмарок, над хатами й соняшниковими полями Полтавщини.',
+    stages:[['kyiv','uk'],['poltava','uk'],['poltava','uk']] },
+  { id:'fiesta', name:'Міжнародна фієста', badge:'balloon', cpm:14, minAcc:72, balloons:null,
+    desc:'Фестиваль повітряних куль над Кам\'янцем-Подільським: польоти англійською мовою.',
+    stages:[['podillia','en','home'],['podillia','en','home'],['carpathians','en']] },
+  { id:'lights', name:'Нічні вогні', badge:'lantern', cpm:16, minAcc:75, balloons:['patch'],
+    desc:'Тільки для клаптикової кулі! Чотири польоти над Львовом і Харковом двома мовами.',
+    stages:[['lviv','en'],['kharkiv','en'],['lviv','uk'],['kharkiv','uk']] },
+  { id:'sands', name:'Олешківські піски', badge:'compass', cpm:18, minAcc:75, balloons:['stars'],
+    desc:'Марафон над найбільшою пустелею України. Потрібна зоряна куля.',
+    stages:[['carpathians','uk'],['kherson','uk'],['kherson','en'],['kherson','uk']] },
+  { id:'breeze', name:'Чорноморський бриз', badge:'anchor', cpm:20, minAcc:78, balloons:['vyshyvanka'],
+    desc:'Морський вітер, маяки й точні пальці.',
+    stages:[['kharkiv','uk'],['odesa','uk'],['odesa','uk']] },
+  { id:'sich', name:'Козацька ватра', badge:'flame', cpm:22, minAcc:78, balloons:['vyshyvanka'],
+    desc:'Над Дніпром і Хортицею: друкуй обережно, як справжній козак.',
+    stages:[['odesa','uk'],['zaporizhzhia','uk'],['zaporizhzhia','uk']] },
+  { id:'around', name:'Навколо України', badge:'laurel', cpm:25, minAcc:80, balloons:['sunflower'],
+    desc:'Марафон витривалості: п\'ять етапів від Києва до Криму.',
+    stages:[['kyiv','uk'],['carpathians','en'],['kherson','uk'],['crimea','en'],['crimea','uk']] },
+  { id:'aipetri', name:'Висота Ай-Петрі', badge:'crown', cpm:55, minAcc:90, balloons:['firebird'], pro:true,
+    desc:'Королівські перегони — лише для жар-птиці й найточніших пілотів.',
+    stages:[['odesa','uk'],['crimea','uk'],['crimea','en']] },
+  { id:'punct', name:'Слалом знаків', badge:'bubble', cpm:30, minAcc:80, balloons:null, lvl:4, pro:true,
+    desc:'Англійські речення, повні розділових знаків: . , - ( ) " ! ? @ \' : — підійде будь-яка куля.',
+    stages:[['kyiv','en','punct'],['kyiv','en','punct'],['carpathians','en','punct'],['carpathians','en','punct'],['odesa','en','punct'],['crimea','en','punct']] },
+  { id:'ukpunct', name:'Знаки українською', badge:'quotes', cpm:30, minAcc:80, balloons:null, lvl:5, pro:true,
+    desc:'Українські речення з комами, двокрапками, лапками й апострофом. На українській розкладці знаки стоять не там, де на англійській.',
+    stages:[['kyiv','uk','ukpunct'],['lviv','uk','ukpunct'],['carpathians','uk','ukpunct'],['odesa','uk','ukpunct']] },
+  { id:'code', name:'Цифри й код', badge:'code', cpm:25, minAcc:80, balloons:null, lvl:6, pro:true,
+    desc:'Числа, дати, час і перші рядки програм: тренуємо цифровий ряд, дужки й знаки.',
+    stages:[['kyiv','uk','digits'],['kharkiv','uk','digits'],['kyiv','en','code'],['odesa','en','code'],['zaporizhzhia','en','code']] }
+];
+// ?boost: швидкість робота й мінімальна точність змагань — як в оригінальній грі «Клавіатурні перегони»
+if(BOOST){
+  const ORIG = { kyiv:[35,85], poltava:[45,88], fiesta:[45,88], lights:[60,90], sands:[70,90], breeze:[80,92],
+                 sich:[85,92], around:[100,93], aipetri:[125,95], punct:[40,85], ukpunct:[40,85], code:[40,85] };
+  COMPS.forEach(c=>{ [c.cpm, c.minAcc] = ORIG[c.id]; });
+}
+const MEDALS = { gold:['🥇','Золото'], silver:['🥈','Срібло'], bronze:['🥉','Бронза'] };
+const MEDAL_RANK = { bronze:1, silver:2, gold:3 };
+const MEDAL_BONUS = { gold:40, silver:25, bronze:15 };
+// Медаль — за середньою точністю етапів (кожен етап — перемога над роботом):
+// від 90% — золото, від 80% — срібло, інакше — бронза
+function medalOf(results){
+  const acc = avg(results, 2);
+  return BOOST ? (acc >= 97 ? 'gold' : acc >= 93 ? 'silver' : 'bronze') : (acc >= 90 ? 'gold' : acc >= 80 ? 'silver' : 'bronze');
+}
+const compById = id => COMPS.find(c=>c.id===id);
+// ?mode=123 — відкрити змагання для сильних учнів одразу, без нормативу
+const UNLOCK_ALL = new URLSearchParams(location.search).get('mode') === '123';
+const compVisible = (c, p = profile) => BOOST || UNLOCK_ALL || !c.pro || p.pro;
+// Складність: за місцем у списку або власна (lvl) — для змагань, доданих у кінець, щоб не зсувати номери в посиланнях #z=N
+const diffDots = (c, i) => { const d = c.lvl || i + 1; return '●'.repeat(d) + `<i>${'●'.repeat(COMPS.length - d)}</i>`; };
+const avg = (arr, i) => Math.round(arr.reduce((s, x)=>s + x[i], 0) / arr.length);
+// Куля для змагання: обрана, якщо дозволена, інакше найкраща з дозволених відкритих
+function compBalloon(c){
+  if(!c.balloons || c.balloons.includes(settings.model)) return settings.model;
+  return c.balloons.filter(id=>isOpen('balloon', id)).pop() || null;
+}
+
+/* ================= Гравці (localStorage цього пристрою) ================= */
+const today = () => { const d = new Date(); return Math.floor((d - d.getTimezoneOffset()*60000) / 86400000); };
+const fmtDay = day => new Date(day * 86400000).toLocaleDateString('uk-UA', { timeZone:'UTC' });
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const STORE_KEY = BOOST ? 'balloon-race-kids-boost-v1' : 'balloon-race-kids-v1';
+const DEFAULT_SETTINGS = { lang:'uk', model:'classic', track:'kyiv', badge:'' };
+// comps: найкращий результат кожного змагання; run — змагання в процесі
+const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, stickers:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
+let store = { current:null, players:{} };
+try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s && s.players) store = s; }catch(e){}
+function saveStore(){ if(player) try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){} }
+
+let player = null;
+let profile = newProfile();
+let settings = profile.settings;
+
+function loadPlayer(name){
+  if(!store.players[name]) store.players[name] = newProfile();
+  player = name;
+  store.current = name;
+  profile = store.players[name];
+  profile.settings = settings = { ...DEFAULT_SETTINGS, ...profile.settings };
+  settings.colors = { ...settings.colors };   // власна копія кольорів у кожного гравця
+  profile.runs ||= {};
+  profile.stickers ||= {};
+  if(!profile.pace && profile.hist){   // гравець, що грав до заміру швидкості: беремо середню за останній день
+    const last = profile.hist[Math.max(...Object.keys(profile.hist))];
+    if(last?.[1]) profile.pace = { all: Math.round(last[0] / last[1]) };
+  }
+  selComp = compById(profile.joined) ? profile.joined : null;
+  saveStore();
+  renderPlayerBtn();
+  renderHUD();
+}
+const earnedBadges = p => COMPS.filter(c=>p.comps[c.id]).map(c=>c.badge);
+
+/* ================= Наліпки ================= */
+// Наліпки за досягнення, як у «Мишачих перегонах» і «Подвійному клацанні». Одні — за один політ: test(r),
+// r — підсумок польоту. Інші збираються за кілька польотів: count(p) — скільки вже є в профілі після польоту, need — скільки треба
+const wonOn = (p, i) => new Set(Object.keys(p.bests || {}).map(k=>k.split('-')[i])).size;   // мов (0) чи регіонів (1) з перемогою
+const STICKERS = [
+  { id:'first',   ico:'🏁', name:'Перший фініш',     how:'Протриматися в повітрі до фінішу',                  test:r=>!r.landed },
+  { id:'win',     ico:'🤖', name:'Обігнав робота',   how:'Пролетіти далі за робота',                          test:r=>r.won },
+  { id:'clean',   ico:'✨', name:'Чистий політ',     how:'Долетіти до фінішу без жодної помилки',             test:r=>r.errors === 0 && !r.landed && r.typed >= PACE_EMA.minChars },
+  { id:'streak',  ico:'🔥', name:'Без промаху',      how:'Натиснути 20 правильних клавіш поспіль',            test:r=>r.topStreak >= 20 },
+  { id:'high',    ico:'☁️', name:'Під хмарами',      how:'Піднятися на найвищу висоту',                       test:r=>r.top },
+  { id:'record',  ico:'📈', name:'Новий рекорд',     how:'Побити свій рекорд швидкості в регіоні',            test:r=>r.newRecord },
+  { id:'drill',   ico:'💪', name:'Над помилками',    how:'Потренувати клавіші, на яких були помилки',          test:r=>r.drill },
+  { id:'langs',   ico:'🌍', name:'Дві мови',         how:'Перемогти українською й англійською',               count:p=>wonOn(p, 0), need:2 },
+  { id:'tracks',  ico:'🗺️', name:'Мандрівник',       how:'Перемогти в усіх десяти регіонах',                  count:p=>wonOn(p, 1), need:TRACKS.length },
+  { id:'races',   ico:'🎈', name:'Повітроплавець',   how:'Здійснити 25 польотів',                             count:p=>p.races, need:25 },
+  { id:'days',    ico:'📅', name:'Щодня потроху',    how:'Грати в 5 різних днів',                             count:p=>Object.keys(p.hist || {}).length, need:5 },
+  { id:'medal',   ico:'🎖️', name:'Призер',           how:'Пройти всі етапи змагання й отримати медаль',       count:p=>Object.keys(p.comps).length, need:1 },
+  { id:'neurons', ico:'🧠', name:'Розумник',         how:'Зібрати 1000 нейрончиків',                          count:p=>p.neurons, need:1000 },
+];
+// Наліпки з count збирають за кілька польотів: скільки вже є з need (лише для ще не отриманих)
+const stickerProgress = st=>st.count && !profile.stickers[st.id] ? Math.min(st.count(profile) || 0, st.need) : 0;
+const stickerTip = st=>{ const n = stickerProgress(st); return `${st.how}${n ? ` — уже ${n} з ${st.need}` : ''}`; };
+// Наліпка: отримана — кольорова, ще ні — сіра; та, що збирається за кілька польотів, частково заповнена кольором,
+// а під назвою — скільки вже зібрано
+function stickerHTML(st){
+  const n = stickerProgress(st);
+  const part = n ? `<span class="st-part" style="--fill:${Math.round(n / st.need * 100)}%"><span>${st.ico}</span></span>` : '';
+  return `<span class="sticker${profile.stickers[st.id] ? '' : ' no'}${n >= st.need ? ' full' : ''}" data-st="${st.id}" title="${stickerTip(st)}">` +
+    `<span class="st-ico"><span>${st.ico}</span>${part}</span>${st.name}${n ? `<small>${n} з ${st.need}</small>` : ''}</span>`;
+}
+function renderStickers(){
+  document.getElementById('stickerCount').textContent = `${STICKERS.filter(st=>profile.stickers[st.id]).length} з ${STICKERS.length}`;
+  document.getElementById('stickers').innerHTML = STICKERS.map(stickerHTML).join('');
+}
+// Клацання по наліпці підказує, за що її дають (на планшеті підказки при наведенні немає)
+document.addEventListener('click', e=>{
+  const st = STICKERS.find(st=>st.id === e.target.closest('.sticker[data-st]')?.dataset.st);
+  if(st) showToast(`${st.ico} ${stickerTip(st)}`);
+});
+const bestKey = (lang, track) => `${lang}-${track}`;
+
+const neuronEl = document.getElementById('neuronCount');
+function renderHUD(pop){
+  neuronEl.textContent = profile.neurons;
+  if(pop){ neuronEl.classList.add('pop'); setTimeout(()=>neuronEl.classList.remove('pop'), 250); }
+}
+
+/* ================= Звук ================= */
+const soundOn = true;
+// Гучний режим для класу: голосніше й більше ефектів (хлопавка, фанфари, конфеті).
+// Учням його не показуємо: вмикає вчитель адресою ?zvuk=klas (вимикає ?zvuk=tykho) або Ctrl+Alt+Z.
+// Режим запам'ятовується на цьому пристрої
+const SOUND_KEY = 'balloon-race-kids-sound';
+let loud = false;
+try{ loud = localStorage.getItem(SOUND_KEY) === 'loud'; }catch(e){}
+function setLoud(on){
+  loud = on;
+  try{ localStorage.setItem(SOUND_KEY, on ? 'loud' : 'quiet'); }catch(e){}
+  showToast(on ? '🔊 Гучний режим для класу' : '🔈 Тихий режим');
+  if(on) celebrate(false);
+}
+
+let actx = null;
+function tone(freq, dur=0.12, type='sine', vol=0.07, delay=0){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime + delay;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(loud ? Math.min(.3, vol * 3) : vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }catch(e){}
+}
+const fanfare = ()=>[523,659,784,1047].forEach((f,i)=>tone(f, .22, 'triangle', .08, i*.12));
+// Шум — для хлопавки
+function noise(dur, vol, delay = 0, freq = 2500){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime + delay, n = Math.ceil(actx.sampleRate * dur);
+    const buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+    for(let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = .7;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(actx.destination);
+    src.start(t);
+  }catch(e){}
+}
+// Ефекти гучного режиму
+const popper = (delay = 0)=>{ noise(.06, .5, delay, 1200); tone(90, .12, 'sine', .1, delay); noise(.6, .12, delay + .05, 4500); };
+function bigFanfare(delay = 0){
+  let t = delay;
+  for(const [f, d] of [[392,.12],[523,.12],[659,.12],[784,.3],[659,.14],[784,.7]]){
+    tone(f, d + .05, 'sawtooth', .035, t); tone(f * 2, d, 'triangle', .03, t); t += d;
+  }
+  [523, 659].forEach(f=>tone(f, .7, 'triangle', .03, t - .7));   // акорд під останню ноту
+}
+const sadTrombone = ()=>[392, 370, 349, 330].forEach((f, i)=>tone(f, i < 3 ? .3 : .8, 'sawtooth', .03, i * .32));
+const sparkle = (delay = 0)=>[1319, 1568, 2093, 2637].forEach((f, i)=>tone(f, .18, 'sine', .04, delay + i * .07));
+function celebrate(big){
+  popper(); bigFanfare(.1); confetti(big ? 220 : 140);
+  if(big){ popper(.9); popper(1.4); setTimeout(()=>confetti(160), 900); }
+}
+
+
+/* ================= Небо й кулі на екрані ================= */
+const trackEl = document.getElementById('track');
+const balMe = document.getElementById('balMe');
+const balBot = document.getElementById('balBot');
+const fxEl = document.getElementById('fx');
+const groundEl = document.getElementById('ground');
+const cloudsEl = document.getElementById('clouds');
+const mastEl = document.getElementById('mast');
+const timerEl = document.getElementById('timer');
+cloudsEl.style.backgroundImage = CLOUDS;
+
+function applyTrack(id){
+  const t = TRACKS[trackIdx(id)];
+  trackEl.style.setProperty('--sky1', t.sky[0]);
+  trackEl.style.setProperty('--sky2', t.sky[1]);
+  groundEl.style.backgroundImage = t.ground;
+  document.getElementById('trackName').innerHTML = `${t.emoji} ${t.name}`;
+  fxEl.innerHTML = '';
+  if(t.fx === 'sun') fxEl.innerHTML = '<div class="sun"></div>';
+  if(t.fx === 'rain') for(let i=0;i<34;i++){
+    const d = document.createElement('div');
+    d.className = 'drop';
+    d.style.left = (Math.random()*110) + '%';
+    d.style.animationDuration = (.7 + Math.random()*.5) + 's';
+    d.style.animationDelay = (-Math.random()*2) + 's';
+    fxEl.appendChild(d);
+  }
+  if(t.fx === 'snow' || t.fx === 'leaves'){
+    const n = t.fx === 'snow' ? 26 : 9;
+    for(let i=0;i<n;i++){
+      const f = document.createElement('div');
+      f.className = t.fx === 'snow' ? 'flake' : 'leaf';
+      f.style.left = (Math.random()*105) + '%';
+      f.style.animationDuration = (t.fx === 'snow' ? 4 + Math.random()*4 : 6 + Math.random()*5) + 's';
+      f.style.animationDelay = (-Math.random()*8) + 's';
+      if(t.fx === 'snow'){ const s = 3 + Math.random()*4; f.style.width = f.style.height = s + 'px'; }
+      else f.style.background = ['#E8A33D','#D9653B','#C9B03A'][i%3];
+      fxEl.appendChild(f);
+    }
+  }
+}
+// Табличка під кошиком: бейджик + ім'я
+const nameTag = (name, badge) => `<span class="tag">${badgeHTML(badge)}${esc(name)}</span>`;
+function drawBalloons(model = settings.model){
+  const myColor = balloonColor(model);
+  const botColor = myColor === BOT_COLOR ? '#16A3A0' : BOT_COLOR;
+  balMe.innerHTML = balloonSVG(model, myColor, 'me') + nameTag(player || 'Ти', settings.badge);
+  balBot.innerHTML = balloonSVG(model, botColor, 'bot') + `<span class="tag">🤖 Робот</span>`;
+}
+// Камера летить за кулею учня: куля стоїть на ME_X ширини неба, а земля, хмари й робот рухаються відносно неї.
+// Відстань — у знаках (1 правильний знак = 1 метр), на екрані знак займає ширину неба / VIEW_CHARS пікселів.
+// Стартова щогла стоїть на MAST_AT метрів позаду старту
+const ME_X = .25, VIEW_CHARS = 70, MAST_AT = -4;
+function drawFlight(dist, h, botDist, botH, wind){
+  const w = trackEl.clientWidth, px = w / VIEW_CHARS, meX = w * ME_X;
+  groundEl.style.backgroundPositionX = `${-dist * px}px`;
+  cloudsEl.style.backgroundPositionX = `${-(dist * px * .35 + wind)}px`;   // хмари далеко — рухаються повільніше за землю
+  mastEl.style.left = `${meX + (MAST_AT - dist) * px}px`;
+  balMe.style.left = `${meX}px`;
+  balMe.style.setProperty('--h', h);
+  // Робот за краєм екрана притиснутий до краю й напівпрозорий
+  const half = balBot.offsetWidth / 2 + 4, x = meX + (botDist - dist) * px;
+  balBot.classList.toggle('far', x < half || x > w - half);
+  balBot.style.left = `${Math.min(w - half, Math.max(half, x))}px`;
+  balBot.style.setProperty('--h', botH);
+}
+// Перед стартом: обидві кулі біля щогли, учень нижче, робот вище
+const parkBalloons = () => drawFlight(0, LIFT.start, 0, BOT_H, 0);
+// Вогонь пальника спалахує на мить — після кожної правильної літери (у робота — після кожного його знака)
+function burn(el){
+  el.classList.add('burn');
+  clearTimeout(el._burn);
+  el._burn = setTimeout(()=>el.classList.remove('burn'), 350);
+}
+
+// Під час польоту небо стискається (до 55% висоти), щоб панель із текстом і клавіатурою вміщалась у вікно.
+// Більше вікно — небо знову росте
+const FIT_VARS = ['--bal-w', '--sky-h', '--ground-h'];
+function fitTrack(){
+  FIT_VARS.forEach(v=>trackEl.style.removeProperty(v));
+  trackEl.classList.remove('compact');
+  if(raceEl.hidden) return;
+  const [bal, sky, ground] = FIT_VARS.map(v=>parseFloat(getComputedStyle(trackEl).getPropertyValue(v)));
+  const over = raceEl.offsetTop + raceEl.offsetHeight + 12 - innerHeight;
+  if(over <= 0) return;
+  const k = Math.max(.55, 1 - over / sky);
+  trackEl.style.setProperty('--sky-h', sky * k + 'px');
+  trackEl.style.setProperty('--ground-h', ground * k + 'px');
+  trackEl.style.setProperty('--bal-w', bal * Math.max(.75, k) + 'px');
+  trackEl.classList.toggle('compact', sky * k < 190);   // низьке небо — назва регіону заважала б таймеру
+}
+addEventListener('resize', ()=>{ fitTrack(); if(!race) parkBalloons(); });
+
+/* ================= Гараж ================= */
+const setupEl = document.getElementById('setup');
+const raceEl = document.getElementById('race');
+// текст польоту переноситься по-різному — висота панелі змінюється; під час самого польоту траса лишається незмінною
+new ResizeObserver(()=>{ if(!race || race.phase === 'countdown') fitTrack(); }).observe(raceEl);
+
+function seg(el, items, cur, onPick){
+  el.innerHTML = items.map(it=>`<button type="button" data-id="${it.id}" class="${it.id===cur?'on':''}" ${it.disabled?'disabled':''}>${it.html}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>onPick(b.dataset.id)));
+}
+function trackPreview(t){
+  return `<div class="track-prev" style="--g:${t.ground.replace(/"/g,"'")}; --s1:${t.sky[0]}; --s2:${t.sky[1]}"></div>`;
+}
+
+function renderSetup(){
+  if(!isOpen('track', settings.track)) settings.track = 'kyiv';
+  if(!isOpen('balloon', settings.model)) settings.model = 'classic';
+  settings.badge = earnedBadges(profile).pop() || '';   // біля імені — бейджик найскладнішого виграного змагання
+
+  renderHUD();
+
+  const tc = document.getElementById('trackCards');
+  tc.innerHTML = TRACKS.map(t=>{
+    const open = isOpen('track', t.id);
+    return `<button type="button" class="pick${t.id===settings.track?' on':''}" data-id="${t.id}" ${open?'':'disabled'}>
+      ${trackPreview(t)}<span class="label">${open ? t.emoji : '🔒'} ${t.name}</span>
+      ${open ? '' : `<small>${NEURON} ${unlockAt('track', t.id)}</small>`}
+    </button>`;
+  }).join('');
+  tc.querySelectorAll('.pick').forEach(b=>b.addEventListener('click', ()=>{ settings.track=b.dataset.id; renderSetup(); }));
+
+  const cc = document.getElementById('balCards');
+  cc.innerHTML = BALLOON_ORDER.map(id=>{
+    const open = isOpen('balloon', id);
+    return `<button type="button" class="pick${id===settings.model?' on':''}${open?'':' locked'}" data-id="${id}" ${open?'':'disabled'}>
+      <span class="bal-prev">${balloonSVG(id, balloonColor(id), 'me')}</span><span class="label">${open?'':'🔒 '}${BALLOONS[id].name}</span>
+      ${open ? '' : `<small>${NEURON} ${unlockAt('balloon', id)}</small>`}
+    </button>`;
+  }).join('');
+  cc.querySelectorAll('.pick').forEach(b=>b.addEventListener('click', ()=>{ settings.model=b.dataset.id; renderSetup(); }));
+
+  const sw = document.getElementById('swatches');
+  sw.innerHTML = COLORS.map(c=>`<button type="button" class="swatch${c===balloonColor(settings.model)?' on':''}" style="background:${c}" data-c="${c}" aria-label="Колір кулі"></button>`).join('');
+  sw.querySelectorAll('.swatch').forEach(b=>b.addEventListener('click', ()=>{ settings.colors[settings.model] = b.dataset.c; renderSetup(); }));
+
+  seg(document.getElementById('segLang'), LANGS, settings.lang, id=>{ settings.lang=id; renderSetup(); });
+
+
+  applyTrack(settings.track);
+  drawBalloons();
+  parkBalloons();
+  renderPlayerBtn();
+  renderComps();
+  renderStickers();
+  saveStore();
+}
+
+/* ================= Вкладки й змагання ================= */
+const startBar = document.getElementById('startBar');
+const startBtn = document.getElementById('startBtn');
+const activeTab = () => document.querySelector('.tab.on')?.dataset.tab || 'paneFree';
+function showTab(id){
+  if(id === 'paneComp' && !compById(selComp)) id = 'paneComps';
+  renderCompTab();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===id));
+  document.querySelectorAll('.pane').forEach(p=>p.hidden = p.id!==id);
+  startBtn.disabled = false;
+  if(id === 'paneComp'){ renderCompPane(); previewComp(); startBar.hidden = false; }
+  else if(id === 'paneComps'){ renderComps(); startBar.hidden = true; }
+  else { applyTrack(settings.track); drawBalloons(); parkBalloons(); startBar.hidden = false; }
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(!t.classList.contains('on')) showTab(t.dataset.tab); }));
+
+const stageChip = ([track, lang], cls='') => `<span class="stage-chip ${cls}">${TRACKS[trackIdx(track)].emoji} ${LANG_FLAG[lang]}</span>`;
+async function copyText(text){
+  let ok = false;
+  try{ await navigator.clipboard.writeText(text); ok = true; }catch(e){}
+  if(!ok){   // запасний спосіб — через тимчасове поле
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed; opacity:0;';
+    document.body.appendChild(ta); ta.select();
+    try{ ok = document.execCommand('copy'); }catch(e){}
+    ta.remove();
+  }
+  if(!ok) prompt('Скопіюй посилання:', text);
+}
+
+// Клавіша — значок швидкості суперника
+const KEY_ICON = `<svg class="key-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="3" width="19" height="18" rx="4" fill="#E6E2FF" stroke="#6C5CE7" stroke-width="1.6"/>
+  <rect x="5.5" y="5.5" width="13" height="10.5" rx="2.5" fill="#fff"/><rect x="9" y="18" width="6" height="1.4" rx=".7" fill="#6C5CE7"/></svg>`;
+const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+let toastTimer = 0;
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+/* ================= Повний екран ================= */
+// Кнопка праворуч від гравця. Повний екран через F11 теж помічаємо (display-mode або вікно на весь екран), тоді іконка — «згорнути»
+const fsBtn = document.getElementById('fsBtn');
+const isFull = ()=>!!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches
+  || (innerWidth >= screen.width - 2 && innerHeight >= screen.height - 2);
+function updateFsBtn(){
+  const full = isFull();
+  fsBtn.classList.toggle('full', full);
+  fsBtn.title = full ? 'Звичайне вікно (F11)' : 'На весь екран (F11)';
+  fsBtn.setAttribute('aria-label', fsBtn.title);
+}
+fsBtn.addEventListener('click', ()=>{
+  fsBtn.blur();   // щоб пробіл не натискав кнопку ще раз
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  else if(isFull()) showToast('Щоб вийти з повного екрана, натисни F11');   // режим F11 сторінка вимкнути не може
+  else document.documentElement.requestFullscreen().catch(()=>{});
+});
+document.addEventListener('fullscreenchange', updateFsBtn);
+window.addEventListener('resize', updateFsBtn);
+fsBtn.hidden = !document.fullscreenEnabled;   // на iPhone повного екрана для сторінок немає
+updateFsBtn();
+// Горизонтальна іконка посилання (дві ланки)
+const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+  <path d="M10 7.5H7a4.5 4.5 0 0 0 0 9h3"/><path d="M14 7.5h3a4.5 4.5 0 0 1 0 9h-3"/><path d="M8.5 12h7"/></svg>`;
+// Змагання, в якому учень бере участь: для нього з'являється окрема вкладка
+let selComp = null;
+const runOf = c => profile.runs[c.id] || { stage:0, results:[] };
+// Суперник наступного етапу: норматив або, якщо учень швидший, робот під учня (botFor; день робота не показуємо)
+function compRules(c){
+  const stage = c.stages[Math.min(runOf(c).stage, c.stages.length - 1)];
+  const bot = botFor(paceOf(stage[1], stageLevel(stage)), compBalloon(c), c.cpm, false);
+  const tip = bot.paced ? `Суперник наступного етапу летить під твою швидкість (норматив ${c.cpm} зн/хв)` : 'Швидкість суперника';
+  return `<span title="${tip} · мінімальна точність етапу">${KEY_ICON} ${bot.cpm} зн/хв · 🎯 від ${c.minAcc}%</span>`;
+}
+function setJoined(id){
+  selComp = id;
+  profile.joined = id;
+  saveStore();
+}
+// Перехід до іншого змагання: незавершене поточне скидається (з попередженням).
+// Завершене змагання можна проходити знову й знову — найкращий результат зберігається.
+function switchComp(id){
+  const cur = compById(selComp);
+  if(cur && cur.id !== id){
+    if(profile.runs[cur.id]?.results.length &&
+       !confirm(`Змагання «${cur.name}» ще не завершено. Перейти до «${compById(id).name}»? Результати пройдених етапів скинуться.`)) return false;
+    delete profile.runs[cur.id];
+  }
+  setJoined(id);
+  return true;
+}
+function joinComp(id){
+  if(!switchComp(id)) return;
+  showTab('paneComp');
+  window.scrollTo({ top:0, behavior:'smooth' });       // щоб було видно небо й «На старт!»
+}
+function leaveComp(){
+  setJoined(null);
+  showTab('paneComps');
+}
+function renderCompTab(){
+  const tab = document.getElementById('compTab');
+  const c = compById(selComp);
+  tab.hidden = !c;
+  if(c) tab.innerHTML = `${badgeHTML(c.badge)} ${c.name}`;
+}
+// Регіон і куля наступного етапу
+function previewComp(){
+  const c = compById(selComp);
+  if(!c) return;
+  const car = compBalloon(c);
+  applyTrack(c.stages[Math.min(runOf(c).stage, c.stages.length - 1)][0]);
+  drawBalloons(car || settings.model);
+  parkBalloons();
+  startBtn.disabled = !car;   // кулю для змагання ще не відкрито
+}
+function renderCompPane(){
+  const c = compById(selComp);
+  if(!c) return;
+  const i = COMPS.indexOf(c), n = c.stages.length;
+  const run = runOf(c), done = run.results.length;
+  const best = profile.comps[c.id];
+  const diff = diffDots(c, i);
+  const pane = document.getElementById('paneComp');
+  pane.innerHTML = `
+    <div class="cp-head">${badgeHTML(c.badge)}<div>
+      <div class="comp-num">Змагання ${i+1}<span class="diff" title="Складність ${c.lvl || i+1} з ${COMPS.length}">${diff}</span></div>
+      <h2>${c.name}<button type="button" class="share-mini" data-link="${i+1}" title="Поділитися змаганням">${LINK_ICON}</button></h2></div>
+      <button type="button" class="share-ico" data-prog="${c.id}" title="Поділитися результатами">${LINK_ICON}</button>
+    </div>
+    <div class="cp-info">
+      <span class="comp-rules">${compRules(c)}
+        ${c.balloons ? `<span class="comp-bals">${c.balloons.map(id=>{ const open = isOpen('balloon', id);
+          return `<span class="comp-bal${open ? '' : ' locked'}">${balloonSVG(id, open ? balloonColor(id) : '#999', 'me')}${BALLOONS[id].name}</span>`; }).join('')}</span>` : ''}</span>
+      <span class="cp-progress"><span class="bar"><i style="width:${done/n*100}%"></i></span>${done} з ${n}</span>
+    </div>
+    <div class="table-scroll"><table class="res-table stage-table"><tbody>
+      ${c.stages.map((stage, k)=>{ const [track, lang] = stage, t = TRACKS[trackIdx(track)], x = run.results[k];
+        const res = x ? `${fmtTime(x[0])} · ${x[1]} зн/хв · ${x[2]}% · ${x[3] ? '<span class="won">Перемога</span>' : '2 місце'}`
+                      : k === done ? `<span class="next-bal" title="Наступний етап">${balloonSVG(compBalloon(c) || settings.model, balloonColor(compBalloon(c) || settings.model), 'me')}</span>` : '';
+        return `<tr class="${x ? 'done' : k === done ? 'next' : 'todo'}"><td>${k+1}</td><td>${t.emoji} ${t.name}</td>
+          <td>${LANG_FLAG[lang]} ${LEVEL_NAME[stageLevel(stage)]}</td><td>${res}</td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="cp-foot">
+      ${medalsHTML(c)}
+      <button type="button" class="btn btn-small btn-red" id="leaveComp">Вийти зі змагання</button>
+    </div>`;
+  bindLinkButtons(pane);
+  // Вихід = відмова від змагання: результати етапів скидаються.
+  // Щоб відкласти, достатньо перейти на іншу вкладку — вкладка змагання з прогресом лишається.
+  document.getElementById('leaveComp').addEventListener('click', ()=>{
+    if(done && !confirm('Вийти зі змагання? Результати пройдених етапів скинуться.')) return;
+    delete profile.runs[c.id];
+    leaveComp();
+  });
+}
+// Кнопки «поділитися»
+// Без участі посилання відкриває саме змагання (#z=N);
+// з участю — показує результати, навіть незавершені (#c=…)
+function progressLink(c){
+  const run = profile.runs[c.id], best = profile.comps[c.id];
+  const res = run?.results.length ? { s:run.results, day:today(), m:compBalloon(c) || settings.model }
+            : best || { s:[], day:today(), m:compBalloon(c) || settings.model };
+  return makeResultLink(c, res);
+}
+function bindLinkButtons(root){
+  root.querySelectorAll('[data-link], [data-prog], [data-url]').forEach(b=>b.addEventListener('click', async e=>{
+    e.currentTarget.blur();
+    // Відгук одразу, не чекаючи буфера обміну: галочка замість іконки + повідомлення внизу
+    b.classList.add('done'); b.innerHTML = CHECK_ICON;
+    showToast('Посилання скопійоване');
+    setTimeout(()=>{ b.classList.remove('done'); b.innerHTML = LINK_ICON; }, 900);
+    await copyText(b.dataset.url || (b.dataset.link ? location.href.split('#')[0] + '#z=' + b.dataset.link : progressLink(compById(b.dataset.prog))));
+  }));
+}
+// Медаль останнього результату змагання
+function medalsHTML(c){
+  const r = profile.comps[c.id];
+  return r ? `<span class="comp-best" title="${MEDALS[r.medal][1]}">${MEDALS[r.medal][0]}</span>` : '';
+}
+function renderComps(){
+  const shown = COMPS.filter(c=>compVisible(c));
+  const done = shown.filter(c=>profile.comps[c.id]).length;
+  document.getElementById('compCount').textContent = `${done}/${shown.length}`;
+  const list = document.getElementById('compList');
+  list.innerHTML = COMPS.map((c, i)=>{
+    if(!compVisible(c)) return '';
+    const best = profile.comps[c.id];
+    const run = profile.runs[c.id];
+    const car = compBalloon(c);
+    const diff = diffDots(c, i);
+    const chips = c.stages.map((st, k)=>stageChip(st, run && k < run.stage ? 'done' : '')).join('');
+    return `<div class="comp${best?' got':''}" id="comp-${i+1}">
+      <div class="comp-head">${badgeHTML(c.badge)}<div>
+        <div class="comp-num">${i+1}<span class="diff" title="Складність ${c.lvl || i+1} з ${COMPS.length}">${diff}</span></div>
+        <h4>${c.name}<button type="button" class="share-mini" data-link="${i+1}" title="Поділитися змаганням">${LINK_ICON}</button></h4></div></div>
+      <div class="stages">${chips}</div>
+      <div class="comp-rules">${compRules(c)}
+        ${c.balloons ? `<span class="comp-bals">${c.balloons.map(id=>{ const open = isOpen('balloon', id);
+          return `<span class="comp-bal${open ? '' : ' locked'}">${balloonSVG(id, open ? balloonColor(id) : '#999', 'me')}${BALLOONS[id].name}</span>`; }).join('')}</span>` : ''}</div>
+      ${best || run?.results.length ? `<button type="button" class="share-ico" data-prog="${c.id}" title="Поділитися результатами">${LINK_ICON}</button>` : ''}
+      <div class="comp-foot">
+        ${medalsHTML(c)}
+        <button type="button" class="btn btn-primary btn-small" data-join="${c.id}" ${car ? '' : 'disabled'}>${c.id === selComp ? `Перейти${run?.stage ? ` · ${run.stage}/${c.stages.length}` : ''}` : 'Взяти участь'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-join]').forEach(b=>b.addEventListener('click', ()=>joinComp(b.dataset.join)));
+  bindLinkButtons(list);
+}
+
+/* ================= Клавіатура ================= */
+const kbEl = document.getElementById('kb');
+let keyMap = {}, shiftL = null, shiftR = null;
+
+function buildKeyboard(){
+  keyMap = {};
+  kbEl.innerHTML = '';
+  const nums = NUM_ROW[race.lang];
+  if(nums && nums.some(k=>race.text.includes(k[0]) || race.text.includes(k[1]))){
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row rn';
+    nums.forEach(([lo, up], col)=>{
+      const finger = NUM_FINGER[race.lang][col];
+      const el = mkKey(lo, up, finger, '');
+      keyMap[lo] = { el, finger, shift:false };
+      keyMap[up] = { el, finger, shift:true };
+      rowEl.appendChild(el);
+    });
+    kbEl.appendChild(rowEl);
+  }
+  LAYOUTS[race.lang].forEach((row, r)=>{
+    const rowEl = document.createElement('div');
+    rowEl.className = `kb-row r${r}`;
+    if(r===2){ shiftL = mkKey('Shift', null, 0, 'wide'); rowEl.appendChild(shiftL); }
+    row.forEach((k, col)=>{
+      const [lo, up] = Array.isArray(k) ? k : [k, k.toUpperCase()];
+      const isLetter = /\p{L}/u.test(lo);
+      const finger = COL_FINGER[col];
+      const el = mkKey(isLetter ? up : lo, isLetter ? null : up, finger, BUMPS[race.lang].includes(lo) ? 'bump' : '');
+      keyMap[lo] = { el, finger, shift:false };
+      keyMap[up] = { el, finger, shift:true };
+      rowEl.appendChild(el);
+    });
+    if(r===2){ shiftR = mkKey('Shift', null, 7, 'wide'); rowEl.appendChild(shiftR); }
+    kbEl.appendChild(rowEl);
+  });
+  const rowEl = document.createElement('div');
+  rowEl.className = 'kb-row';
+  const space = mkKey('пробіл', null, -1, 'space');
+  keyMap[' '] = { el:space, finger:-1, shift:false };
+  rowEl.appendChild(space);
+  kbEl.appendChild(rowEl);
+}
+function mkKey(label, upLabel, finger, extra){
+  const el = document.createElement('div');
+  el.className = `key ${extra||''}`;
+  if(finger >= 0) el.style.setProperty('--fc', `var(${FINGER_VAR[finger]})`);
+  el.innerHTML = (upLabel ? `<span class="up">${upLabel}</span>` : '') + label;
+  return el;
+}
+
+const hintEl = document.getElementById('hint');
+function showNextKey(ch){
+  kbEl.querySelectorAll('.next').forEach(k=>k.classList.remove('next'));
+  const k = ch === undefined ? null : keyMap[ch];
+  if(!k){ hintEl.innerHTML = ''; return; }
+  k.el.classList.add('next');
+  const dot = f => `<span class="dot" style="background:var(${FINGER_VAR[f]})"></span>`;
+  let html = `Наступна: <span class="kbd">${ch===' ' ? 'пробіл' : ch}</span>`;
+  html += k.finger < 0 ? `<span>великий палець</span>` : `<span>${dot(k.finger)}${FINGERS[k.finger]}</span>`;
+  if(k.shift){
+    const sh = k.finger <= 3 ? shiftR : shiftL;   // Shift — протилежною рукою
+    sh.classList.add('next');
+    html += `<span>+ <b>Shift</b> (${k.finger <= 3 ? 'правий' : 'лівий'} мізинець)</span>`;
+  }
+  hintEl.innerHTML = html;
+}
+function flashKey(ch){
+  const k = keyMap[ch] || keyMap[ch.toLowerCase()];
+  if(!k) return;
+  k.el.classList.add('press');
+  setTimeout(()=>k.el.classList.remove('press'), 110);
+}
+
+
+/* ================= Політ ================= */
+const textBox = document.getElementById('textBox');
+const textLines = document.getElementById('textLines');
+const typer = document.getElementById('typer');
+const tipEl = document.getElementById('tip');
+const countdownEl = document.getElementById('countdown');
+const overlay = document.getElementById('overlay');
+
+let race = null, spans = [], rafId = 0, tipTimer = 0;
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+
+// Політ триває RACE_SEC секунд, тож текст не закінчується: спершу — приблизно на хвилину для швидшого з двох
+// (учня з його звичною швидкістю pace чи робота), а коли до кінця лишається TEXT_MORE знаків, додаємо ще
+const TEXT_MORE = 30;
+function makeText(lang, level, pace = 0, bot = 0){
+  const src = TEXTS[lang][level === 'long' || level === 'sentences' ? (BOOST ? 'full' : 'sentences') : level];
+  const n = (BOOST ? { home:8, top:7, words:7, sentences:2, long:3, punct:3, ukpunct:3, digits:3, code:3 }
+                   : { home:5, top:4, words:4, sentences:2, long:3, punct:2, ukpunct:2, digits:2, code:2 })[level];
+  const list = shuffle(src.slice());
+  const target = Math.max(pace, bot, 20) * RACE_SEC / 60 * 1.2;
+  let k = n;
+  while(k < list.length && list.slice(0, k + 1).join(' ').length <= target) k++;
+  return list.slice(0, k).join(' ');
+}
+
+function addSpans(text){
+  const mk = (c, cls)=>{ const s = document.createElement('span'); s.className = cls; s.textContent = c; spans.push(s); return s; };
+  text.split(/( )/).forEach(part=>{
+    if(!part) return;
+    if(part === ' '){ textLines.appendChild(mk(' ', 'ch sp')); return; }
+    const w = document.createElement('span');
+    w.className = 'word';
+    for(const c of part) w.appendChild(mk(c, 'ch'));
+    textLines.appendChild(w);
+  });
+}
+function renderText(){
+  textLines.textContent = '';
+  textLines.scrollTop = 0;
+  spans = [];
+  addSpans(race.text);
+}
+function extendText(){
+  const more = ' ' + race.more();
+  race.text += more;
+  addSpans(more);
+}
+// У віконці — лише рядок із поточною літерою: на новий рядок прокручуємо, коли до нього доходить черга
+function scrollLines(){
+  const top = spans[race.pos].offsetTop - spans[0].offsetTop;
+  if(top !== textLines.scrollTop) textLines.scrollTo({ top, behavior:'smooth' });
+}
+
+
+// opts: { track, lang, cpm, model, comp, level?, text?, more? }
+function startRace(opts){
+  overlay.classList.remove('show');
+  cancelAnimationFrame(rafId);
+  const level = opts.level || TRACK_LEVEL[opts.track];
+  const pace = opts.drill ? 0 : paceOf(opts.lang, level, true);   // звична швидкість учня на цьому тексті
+  race = {
+    text: opts.text || makeText(opts.lang, level, pace, opts.cpm), more: opts.more || (()=>makeText(opts.lang, level, pace, opts.cpm)),
+    pace, weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
+    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
+    botCpm:opts.cpm, botChars:0, botFair:0, rate:0, seed:Math.random()*10, lastFrame:0,
+    assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
+    // висота кулі: поріг темпу lift, «тепло» пальника heat (зн/хв), найвища висота за політ, приземлення
+    lift: Math.max(LIFT.minCpm, pace * LIFT.ratio), h:LIFT.start, maxH:LIFT.start, landed:false, lowTip:false, view:0, wind:0,
+    hold:{ focus:false, alert:false, pause:false }   // пауза: сторінка без фокусу, підказка про мову чи Caps Lock або кнопка ⏸
+  };
+  race.heat = race.lift;
+  setupEl.hidden = true;
+  shareView.hidden = true;
+  startBar.hidden = true;
+  raceEl.hidden = false;
+  raceEl.classList.remove('paused');
+  applyTrack(opts.track);
+  buildKeyboard();
+  drawBalloons(opts.model);
+  balMe.classList.remove('low', 'burn', 'bump');
+  balBot.hidden = race.noBot;
+  parkBalloons();
+  timerEl.hidden = false;
+  updateTimer(0);
+  const c = race.comp;
+  document.getElementById('raceInfo').textContent = c
+    ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
+    : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}` : '';
+  const notes = [BOOST && 'нормативи 5–7 класів'];
+  if(!c && !race.drill) notes.push(TEACHER.noBot ? 'політ без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
+  document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
+  renderText();
+  spans[0].classList.add('cur');
+  showNextKey(race.text[0]);
+  updateStats(0);
+  tipEl.hidden = true;
+  alertEl.hidden = true;
+  typer.value = '';
+  typer.focus();   // фокус одразу в обробнику кліку — щоб на планшеті з'явилась клавіатура
+  window.scrollTo({ top:0, behavior:'smooth' });
+  runCountdown();
+}
+// Тренування слабких клавіш: слова з усіх текстів цієї мови, де є ці символи; без робота
+const keyName = k => k === ' ' ? 'пробіл' : k;
+function drillText(lang, keys){
+  // Літери тренуємо на звичайних словах (без ?boost — без великих літер і знаків); знаки й цифри — на текстах, де вони є
+  const plain = ['home', 'top', 'words', 'sentences', ...(BOOST ? ['full'] : [])];
+  const onlyLetters = keys.every(k=>/\p{L}/u.test(k));
+  const lists = Object.entries(TEXTS[lang]).filter(([k])=>onlyLetters ? plain.includes(k) : BOOST || k !== 'full').flatMap(([, list])=>list);
+  const pool = [...new Set(lists.flatMap(t=>t.split(' ')))].filter(w=>w && keys.some(k=>w.includes(k)));
+  const words = shuffle(pool).slice(0, BOOST ? 7 : 5);
+  if(words.length < 3) keys.forEach(k=>words.push(k.repeat(3)));   // таких слів мало — просто серії символу
+  return shuffle(words).join(' ');
+}
+function startDrill(lang, keys){
+  startRace({ track:settings.track, lang, cpm:BALLOON_CPM[settings.model], model:settings.model, noBot:true, level:'drill', drill:keys,
+              text:drillText(lang, keys), more:()=>drillText(lang, keys) });
+}
+function startFree(){
+  const level = TRACK_LEVEL[settings.track];
+  const p = TEACHER.cpm ? 0 : paceOf(settings.lang, level, true);
+  const bot = botFor(p, settings.model, TEACHER.cpm || (p ? 3 : BALLOON_CPM[settings.model]), !!p && !TEACHER.noBot && rollRobotDay());
+  startRace({ track:settings.track, lang:settings.lang, cpm:bot.cpm, paced:bot.paced, day:bot.day, model:settings.model, noBot:TEACHER.noBot });
+}
+function startComp(id){
+  const c = compById(id);
+  const car = compBalloon(c);
+  if(!car) return;
+  if(selComp !== id) setJoined(id);
+  profile.runs[id] ||= { stage:0, results:[] };
+  saveStore();
+  const stage = c.stages[profile.runs[id].stage];
+  const [track, lang] = stage;
+  const p = paceOf(lang, stageLevel(stage));   // текст, якого учень ще не друкував (знаки, код), — спершу за нормативом
+  const bot = botFor(p, car, c.cpm, !!p && rollRobotDay());
+  startRace({ track, lang, cpm:bot.cpm, paced:bot.paced, day:bot.day, model:car, comp:c, level:stageLevel(stage) });
+}
+
+function runCountdown(){
+  const lamps = countdownEl.querySelectorAll('.lights i');
+  const num = document.getElementById('countNum');
+  countdownEl.hidden = false;
+  lamps.forEach(l=>l.className = '');
+  const steps = [
+    ()=>{ lamps[0].className='red'; num.textContent='3'; tone(440,.15,'square',.05); },
+    ()=>{ lamps[1].className='yellow'; num.textContent='2'; tone(440,.15,'square',.05); },
+    ()=>{ lamps[2].className='yellow'; num.textContent='1'; tone(440,.15,'square',.05); },
+    ()=>{ lamps.forEach(l=>l.className='green'); num.textContent='Злітай!'; tone(880,.35,'square',.06); go(); }
+  ];
+  const id = race.id = Symbol();
+  steps.forEach((fn, i)=>setTimeout(()=>{ if(race && race.id===id) fn(); }, i*750));
+  setTimeout(()=>{ if(race && race.id===id) countdownEl.hidden = true; }, steps.length*750 + 300);
+}
+
+function go(){
+  race.phase = 'race';
+  race.startT = performance.now();
+  race.lastFrame = race.startT;
+  typer.value = '';
+  trackEl.classList.add('flying');
+  rafId = requestAnimationFrame(loop);
+}
+
+// Політ: RACE_SEC секунд; перемагає той, хто пролетів далі (1 правильний знак = 1 метр).
+// Висота кулі h: 0 — земля, 1 — найвище. Кожна правильна літера підігріває пальник: heat — темп друку в зн/хв,
+// що згасає за tau секунд. Темп вищий за поріг (ratio від звичної швидкості учня, але не нижче minCpm) — куля
+// піднімається (до rise за секунду, не вище top), нижчий — знижується (до fall за секунду). Тепло не вище за cap порогів,
+// тож після зупинки куля починає знижуватись за кілька секунд. Перші grace секунд куля не знижується.
+// Учень зупинився зовсім — із висоти start до землі приблизно 6 с, з найвищої — приблизно 12 с. Нижче low — підказка
+const RACE_SEC = 60;
+const LIFT = { start:.42, top:.9, rise:.12, fall:.11, tau:3, ratio:.5, minCpm:8, cap:2, grace:3, low:.25 };
+const BOT_H = .86;   // робот летить рівно на цій висоті, лише трохи погойдується
+// Робот поруч: botFair — «чесна» дистанція робота, як у «Клавіатурних перегонах» (швидкість під учня, пригальмовування),
+// botChars — де робот на екрані. Посеред польоту робот тримається біля кулі учня (або біля botFair, якщо учень
+// зупинився) і то відстає, то обганяє: хвиля з амплітудою amp секунд друку учня (від ampMin до ampMax метрів)
+// і періодом period секунд, що з'являється за ramp секунд після старту. За settle[0]–settle[1] секунд до фінішу
+// робот повертається до botFair, тож переможця, як і раніше, вирішує звична швидкість учня. Швидкість робота —
+// від min до max темпу учня (rate — темп за останні tau секунд, але не менше половини швидкості робота), gain — як
+// швидко він доганяє свою ціль
+const CHASE = { tau:5, amp:8, ampMin:3, ampMax:9, period:30, ramp:[3, 10], settle:[20, 5], gain:.8, min:.35, max:2.2 };
+const clamp01 = x => Math.min(1, Math.max(0, x));
+
+function loop(now){
+  if(!race || race.phase !== 'race') return;
+  const raw = now - race.lastFrame;
+  const dt = Math.min(0.25, raw / 1000);
+  race.lastFrame = now;
+  if(race.hold.focus || race.hold.alert || race.hold.pause){   // пауза: годинник, робот і куля стоять
+    race.startT += raw;
+    if(race.lastKeyT) race.lastKeyT += raw;
+    rafId = requestAnimationFrame(loop);
+    return;
+  }
+  const t = Math.min(RACE_SEC, (now - race.startT) / 1000);
+  if(!race.noBot){
+    const k = 1 + 0.14*Math.sin(t*0.9 + race.seed) + 0.06*Math.sin(t*2.7 + race.seed*2);   // робот то пришвидшується, то гальмує
+    if(race.assist){
+      // Непомітна підтримка: поки дитина друкує, робот, що відірвався, плавно пригальмовує
+      const lead = race.botFair - race.pos;
+      const kidCpm = race.pos / Math.max(1, t) * 60;
+      const typing = now - Math.max(race.lastKeyT, race.startT) < Math.max(ASSIST.idleMs, ASSIST.idle * 60000 / Math.max(kidCpm, 1));
+      const target = typing && lead > ASSIST.lead ? Math.min(1, Math.max(ASSIST.min, kidCpm * ASSIST.ratio / race.botCpm)) : 1;
+      race.assistK += (target - race.assistK) * Math.min(1, dt * ASSIST.ease);
+    }
+    race.rate *= Math.exp(-dt / CHASE.tau);
+    if(t >= race.botDelay){
+      race.botFair += race.botCpm / 60 * dt * k * race.assistK;
+      // Робот на екрані: біля кулі учня з хвилею, наприкінці — на чесній дистанції
+      const v = Math.max(race.rate, race.botCpm * .5) / 60;   // темп учня, метрів за секунду
+      const amp = Math.min(CHASE.ampMax, Math.max(CHASE.ampMin, v * CHASE.amp));
+      const wave = amp * Math.sin(2 * Math.PI * t / CHASE.period + race.seed) * clamp01((t - CHASE.ramp[0]) / (CHASE.ramp[1] - CHASE.ramp[0]));
+      const mid = Math.max(race.pos, race.botFair) + wave;
+      const end = clamp01((t - RACE_SEC + CHASE.settle[0]) / (CHASE.settle[0] - CHASE.settle[1]));
+      const target = mid + (race.botFair - mid) * end;
+      const speed = Math.min(v * CHASE.max, Math.max(v * CHASE.min, v + (target - race.botChars) * CHASE.gain));
+      const before = race.botChars;
+      race.botChars += speed * dt;
+      if(Math.floor(race.botChars) > Math.floor(before)) burn(balBot);
+    }
+  }
+  // Висота кулі учня
+  race.heat *= Math.exp(-dt / LIFT.tau);
+  const d = (race.heat - race.lift) / race.lift;
+  let v = d >= 0 ? LIFT.rise * Math.min(1, d) : LIFT.fall * Math.max(-1, d);
+  if(t < LIFT.grace) v = Math.max(0, v);
+  race.h = Math.max(0, Math.min(LIFT.top, race.h + v * dt));
+  race.maxH = Math.max(race.maxH, race.h);
+  const low = race.h < LIFT.low && v < 0;
+  balMe.classList.toggle('low', low);
+  if(low && !race.lowTip){ race.lowTip = true; showTip('⬇️ Куля знижується — друкуй!'); }
+  if(race.h > LIFT.low + .1) race.lowTip = false;
+  race.view += (race.pos - race.view) * Math.min(1, dt * 4);   // камера м'яко доганяє кулю після кожної літери
+  race.wind += dt * 8;                                          // хмари пливуть за вітром, пікселів за секунду
+  const bob = race.h > .05 ? .012 * Math.sin(t * 1.4) : 0;
+  drawFlight(race.view, race.h + bob, race.botChars, BOT_H + .025 * Math.sin(t * 1.1 + race.seed), race.wind);
+  updateTimer(t);
+  if(race.h <= 0){ race.landed = true; return finish(); }
+  if(t >= RACE_SEC) return finish();
+  rafId = requestAnimationFrame(loop);
+}
+// Таймер: скільки лишилось до фінішу; останні 10 секунд — червоним
+function updateTimer(t){
+  const left = Math.max(0, RACE_SEC - t);
+  document.getElementById('timerNum').textContent = fmtTime(Math.ceil(left));
+  timerEl.style.setProperty('--t', t / RACE_SEC * 100 + '%');
+  timerEl.classList.toggle('end', left <= 10);
+}
+
+function fmtTime(sec){ sec = Math.floor(sec); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
+function updateStats(now){
+  const sec = race.startT && now ? Math.max(0, now - race.startT)/1000 : 0;   // кадр анімації буває трохи раніший за старт
+  document.getElementById('sTime').textContent = fmtTime(sec);
+  document.getElementById('sSpeed').textContent = sec > 2 ? Math.round(race.pos / sec * 60) : 0;
+  document.getElementById('sErr').textContent = race.errors;
+  document.getElementById('sAcc').textContent = race.pos + race.errors ? Math.round(race.pos / (race.pos + race.errors) * 100) : 100;
+}
+
+function showTip(msg){
+  tipEl.textContent = msg;
+  tipEl.hidden = false;
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(()=>tipEl.hidden = true, 3500);
+}
+
+// Не та мова чи Caps Lock: велика картка з інструкцією поверх клавіатури; політ стоїть, доки учень не натисне правильну літеру
+const alertEl = document.getElementById('alert');
+let capsOn = null;   // справжній стан Caps Lock з останнього натискання (null — невідомо, наприклад на планшеті)
+function showAlert(kind){
+  if(alertEl.hidden || alertEl.dataset.kind !== kind){
+    const want = race.lang === 'uk' ? 'УКР' : 'ENG', have = race.lang === 'uk' ? 'ENG' : 'УКР';
+    const cap = k => `<span class="cap">${k}</span>`;
+    alertEl.innerHTML = kind === 'lang'
+      ? `<div class="alert-title">🌐 Не та мова клавіатури!</div>
+         <div class="alert-row">Унизу екрана, біля годинника, має бути <span class="lang-bar"><s>${have}</s> → <i>${want}</i></span></div>
+         <div class="alert-row">Натисни разом ${cap('Alt')} + ${cap('Shift')} <span class="or">або</span> ${cap('⊞ Win')} + ${cap('Пробіл')}</div>
+         <div class="alert-note">На Mac: Control + Пробіл</div>`
+      : kind === 'caps'
+      ? `<div class="alert-title">🔠 Літери великі: увімкнено Caps Lock</div>
+         <div class="alert-row">Натисни один раз ${cap('<i class="lamp"></i>Caps Lock')} — вогник має згаснути</div>`
+      : `<div class="alert-title">🔠 Літера вийшла великою</div>
+         <div class="alert-row">Відпусти ${cap('Shift')} і натисни літеру ще раз</div>`;
+    alertEl.dataset.kind = kind;
+  }
+  alertEl.hidden = false;
+  alertEl.classList.remove('shake'); void alertEl.offsetWidth; alertEl.classList.add('shake');
+  race.hold.alert = true;
+  tone(440, .12, 'triangle', .06); tone(330, .2, 'triangle', .06, .13);
+}
+function hideAlert(){
+  alertEl.hidden = true;
+  if(race) race.hold.alert = false;
+}
+const readCaps = e=>{
+  if(!e.getModifierState) return;
+  capsOn = e.getModifierState('CapsLock');
+  if(!capsOn && race && !alertEl.hidden && alertEl.dataset.kind === 'caps') hideAlert();   // Caps Lock вимкнули — продовжуємо
+};
+document.addEventListener('keydown', readCaps, true);
+document.addEventListener('keyup', readCaps, true);
+
+// Похвала за кожні STREAK_STEP правильних натискань поспіль
+const STREAK_STEP = 10;
+function praise(n){
+  textBox.querySelector('.praise')?.remove();
+  const p = document.createElement('div');
+  p.className = 'praise';
+  p.textContent = n === STREAK_STEP ? `🔥 ${n} без помилок!` : n === 2 * STREAK_STEP ? `⭐ ${n} поспіль — супер!` : `🏆 ${n} без жодної помилки!`;
+  textBox.appendChild(p);
+  setTimeout(()=>p.remove(), 2300);
+  if(loud) sparkle(); else { tone(660, .1, 'sine', .03); tone(880, .14, 'sine', .03, .09); }
+}
+
+const isCyr = c => /[а-яіїєґ]/i.test(c);
+const isLat = c => /[a-z]/i.test(c);
+
+function handleChar(ch){
+  if(!race || race.phase !== 'race' || race.hold.pause) return;
+  const need = race.text[race.pos];
+  if(ch === ' ') ch = ' ';
+  if(/[’‘ʼ]/.test(ch) && need === "'") ch = "'";          // планшети ставлять «розумний» апостроф і лапки
+  if(/[“”„]/.test(ch) && need === '"') ch = '"';
+  flashKey(ch);
+  if(ch === need){
+    if(race.hold.alert) hideAlert();
+    spans[race.pos].classList.remove('cur', 'err');
+    spans[race.pos].classList.add('ok');
+    if(race.missed) spans[race.pos].classList.add('miss');
+    race.missed = false;
+    race.pos++;
+    race.lastKeyT = performance.now();
+    race.heat = Math.min(race.lift * LIFT.cap, race.heat + 60 / LIFT.tau);   // пальник підігріває кулю
+    race.rate += 60 / CHASE.tau;
+    burn(balMe);
+    if(race.text.length - race.pos < TEXT_MORE) extendText();
+    if(++race.streak % STREAK_STEP === 0) praise(race.streak);
+    race.topStreak = Math.max(race.topStreak, race.streak);
+    spans[race.pos].classList.add('cur');
+    if(race.text[race.pos - 1] === ' ') scrollLines();   // новий рядок починається лише після пробілу
+    showNextKey(race.text[race.pos]);
+    return;
+  }
+  // Неправильна розкладка чи Caps Lock — підказуємо, але помилкою не рахуємо
+  if(isCyr(need) && isLat(ch)) return showAlert('lang');
+  if(race.lang === 'en' && !isCyr(need) && isCyr(ch)) return showAlert('lang');
+  if(ch.toLowerCase() === need && ch !== need) return showAlert(capsOn === false ? 'shift' : 'caps');
+  race.errors++;
+  race.weak[need] = (race.weak[need] || 0) + 1;   // клавіші з помилками — для екрана результату
+  race.missed = true;
+  race.streak = 0;
+  const s = spans[race.pos];
+  s.classList.remove('err'); void s.offsetWidth; s.classList.add('err');
+  setTimeout(()=>s.classList.remove('err'), 220);
+  balMe.classList.remove('bump'); void balMe.offsetWidth; balMe.classList.add('bump');   // помилка тяги не дає, куля лише хитається
+  tone(150, .09, 'square', .04);
+  updateStats(performance.now());
+}
+
+typer.addEventListener('input', ()=>{
+  const v = typer.value;
+  typer.value = '';
+  for(const ch of v) handleChar(ch);
+});
+// Фокус: поки йде політ, усі натискання мають потрапляти в поле для друку.
+// Фокус пішов в інше місце сторінки — повертаємо мовчки. Пауза з великою підказкою — лише коли
+// сторінка зовсім втратила фокус (інше вікно, рядок адреси) або на планшеті сховалась клавіатура
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const raceLive = () => race && (race.phase === 'race' || race.phase === 'countdown');
+function setLost(on){
+  raceEl.classList.toggle('unfocused', on);
+  if(race) race.hold.focus = on;
+}
+// Повернути фокус у поле; якщо воно вже у фокусі (подія focus не прийде) — просто зняти паузу
+function refocus(){ typer.focus(); if(document.activeElement === typer && document.hasFocus()) setLost(false); }
+raceEl.addEventListener('mousedown', e=>{ if(e.target !== typer){ e.preventDefault(); refocus(); } });
+raceEl.addEventListener('touchend', refocus);
+document.addEventListener('mousedown', e=>{ if(raceLive() && !raceEl.contains(e.target)){ e.preventDefault(); refocus(); } });
+typer.addEventListener('blur', ()=>setTimeout(()=>{
+  if(!raceLive() || document.activeElement === typer) return;
+  if(!isTouch && document.hasFocus()) typer.focus();
+  else setLost(true);
+}, 0));
+typer.addEventListener('focus', ()=>setLost(false));
+addEventListener('blur', ()=>{ if(raceLive()) setLost(true); });
+// Пауза кнопкою ⏸: годинник і робот стоять, літери не зараховуються; продовжити — «Грати далі» або Enter
+function setPause(on){
+  if(!race || race.phase !== 'race') return;
+  race.hold.pause = on;
+  raceEl.classList.toggle('paused', on);
+}
+document.getElementById('pauseBtn').addEventListener('click', ()=>setPause(!(race && race.hold.pause)));
+document.getElementById('resumeBtn').addEventListener('click', ()=>setPause(false));
+typer.addEventListener('keydown', e=>{ if(e.key === 'Enter' && race && race.hold.pause){ e.preventDefault(); setPause(false); } });
+addEventListener('focus', ()=>{ if(raceLive() && !isTouch) refocus(); });
+// Натискання, коли фокус не в полі: повертаємо його, і літера потрапить у поле
+document.addEventListener('keydown', e=>{
+  if(raceLive() && document.activeElement !== typer && !e.ctrlKey && !e.altKey && !e.metaKey) typer.focus();
+}, true);
+
+
+let againAction = startFree, exitAction = toSetup;
+function finish(){
+  const now = performance.now();
+  race.phase = 'done';
+  cancelAnimationFrame(rafId);
+  balMe.classList.remove('low', 'burn');
+  tipEl.hidden = true;
+  showNextKey(undefined);
+  const solo = race.noBot;                // політ без робота: просто фініш
+  const landed = race.landed;             // куля сіла на землю до фінішу
+  const typed = race.pos, botDist = Math.floor(race.botChars);
+  const won = !solo && !landed && typed > botDist;   // долетів і пролетів далі за робота
+  const sec = Math.min(RACE_SEC, (now - race.startT) / 1000);
+  const speed = Math.round(typed / Math.max(1, sec) * 60);
+  const acc = typed ? Math.round(typed / (typed + race.errors) * 100) : 0;
+  const stars = landed ? 1 : won || solo ? 2 + (acc >= (BOOST ? 95 : 90) ? 1 : 0) : 1;
+  const key = bestKey(race.lang, race.track);
+  const prevBest = profile.bests[key] || 0;
+  const record = (won || solo) && speed > prevBest;  // рекорд — лише за долетілий до фінішу політ
+  if(record) profile.bests[key] = speed;
+  profile.races++;
+  if(!race.drill){   // швидкість по днях — для графіка в профілі: [сума швидкостей, польотів, найкраща]
+    const h = (profile.hist ||= {})[today()] ||= [0, 0, 0];
+    h[0] += speed; h[1]++; h[2] = Math.max(h[2], speed);
+    if(typed >= PACE_EMA.minChars) updatePace(race.lang, race.level, speed);   // під цю швидкість підлаштується робот
+  }
+  if(won) profile.wins++;
+  const proNow = !BOOST && !profile.pro && won && speed >= PRO_CPM && acc >= 90;   // результат, незвичний для 2–3 класу
+  if(proNow) profile.pro = true;
+
+  // Нейрончики
+  const nb = neuronsFor({ track:race.track, speed, errors:race.errors, acc, won, landed, flown: landed ? sec / RACE_SEC : 1, faster: !landed && race.pace && speed > race.pace });
+  let gain = nb.total;
+  const parts = [`регіон +${nb.base}`, `політ +${nb.ride}`, `точність ×${nb.mult}`];
+  if(landed) parts.push(`у повітрі ${Math.round(sec)} с з ${RACE_SEC}`);
+  if(nb.win) parts.push(`перемога +${nb.win}`);
+  if(nb.faster) parts.push(`швидше, ніж зазвичай +${nb.faster}`);
+
+  // Змагання
+  let compHTML = '';
+  let bigWin = false;   // змагання завершено — найбільше свято
+  const c = race.comp;
+  againAction = startFree;
+  let againLabel = '🎈 Ще політ';
+  if(c){
+    const run = profile.runs[c.id];
+    const n = c.stages.length;
+    if(won && acc >= c.minAcc){
+      run.results.push([Math.round(sec), speed, acc, 1]);
+      run.stage++;
+      if(run.stage >= n){
+        const result = { medal:medalOf(run.results), s:run.results, day:today(), m:race.model };
+        const bonus = MEDAL_BONUS[result.medal] + COMPS.indexOf(c) * 5;
+        bigWin = true;
+        gain += bonus;
+        parts.push(`медаль +${bonus}`);
+        const prev = profile.comps[c.id];
+        const firstBadge = !prev;
+        profile.comps[c.id] = result;   // повторна участь просто перезаписує результат
+        delete profile.runs[c.id];
+        setJoined(null);   // змагання завершено — його вкладка зникає
+        const link = makeResultLink(c, result);
+        compHTML = `<div class="comp-box final">
+          <b>🏆 «${c.name}» завершено: ${MEDALS[result.medal][0]} ${MEDALS[result.medal][1]}!</b><br>
+          Середня точність: ${avg(result.s, 2)}%${firstBadge ? ` · новий бейджик ${badgeHTML(c.badge)}` : ''}
+          <button type="button" class="share-ico" data-url="${esc(link)}" title="Поділитися результатами">${LINK_ICON}</button>
+        </div>`;
+        againAction = ()=>{ toSetup(); showTab('paneComps'); };
+        againLabel = '🏆 До змагань';
+      } else {
+        compHTML = `<div class="comp-box step">✅ Етап ${run.stage} з ${n} зараховано</div>`;
+        againAction = ()=>startComp(c.id);
+        againLabel = `▶ Далі: ${TRACKS[trackIdx(c.stages[run.stage][0])].name}`;
+      }
+    } else {
+      compHTML = `<div class="comp-box fail step">${landed ? 'Треба протриматися в повітрі до фінішу' : won ? `Потрібна точність від ${c.minAcc}%` : 'Треба пролетіти далі за робота'}</div>`;
+      againAction = ()=>startComp(c.id);
+      againLabel = '↻ Ще раз';
+    }
+  }
+
+  // Розблокування за нейрончики
+  const before = profile.neurons;
+  profile.neurons += gain;
+  const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
+  // Наліпки
+  const run = { won, landed, typed, errors:race.errors, topStreak:race.topStreak, top:race.maxH >= LIFT.top - .01, newRecord:record && prevBest > 0, drill:!!race.drill };
+  const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
+  earned.forEach(st=>profile.stickers[st.id] = today());
+  saveStore();
+  renderHUD(true);
+
+  // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
+  const failed = c && !(won && acc >= c.minAcc);
+  document.getElementById('wBig').textContent = landed ? '🎈' : solo ? '🏁' : !won ? '🤖' : failed ? '🎯' : '🏆';
+  document.getElementById('winTitle').textContent = landed ? 'Куля приземлилась' : solo ? 'Фініш!' : !won ? 'Робот пролетів далі' : failed ? 'Етап не зараховано' : 'Перемога!';
+  document.getElementById('wSub').textContent = landed ? 'Друкуй без довгих зупинок — тоді пальник гріє й куля тримається в повітрі.'
+    : solo ? `Твоя куля пролетіла ${typed} м` : `Твоя куля — ${typed} м, робот — ${botDist} м${won ? '' : '. Наступного разу вийде!'}`;
+  document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
+  document.getElementById('wSpeed').textContent = speed;
+  document.getElementById('wAcc').textContent = acc + '%';
+  document.getElementById('wDist').textContent = typed;
+  document.getElementById('wGain').innerHTML = `<div class="gain" title="${parts.join(' · ')}">${NEURON} +${gain}</div>`;
+  document.getElementById('wComp').innerHTML = compHTML;
+  document.getElementById('wRecord').innerHTML = record
+    ? `<span class="record">🎉 Новий рекорд!</span>` : '';
+  // Клавіші, на яких було найбільше помилок, і кнопка тренування з ними
+  const weak = Object.entries(race.weak).filter(([k])=>k !== ' ').sort((a, b)=>b[1] - a[1]).slice(0, 3);
+  const weakEl = document.getElementById('wWeak');
+  weakEl.innerHTML = weak.length ? `<div class="weak">Помилки на клавішах: ${weak.map(([k, n])=>`<span class="kbd">${esc(keyName(k))}</span>${n > 1 ? `<small>×${n}</small>` : ''}`).join(' ')}
+      <button type="button" class="btn btn-ghost btn-small" id="drillBtn">🎯 Потренувати</button></div>` : '';
+  if(weak.length){ const lang = race.lang, keys = weak.map(([k])=>k); document.getElementById('drillBtn').addEventListener('click', ()=>startDrill(lang, keys)); }
+  document.getElementById('wUnlock').innerHTML =
+    (opened.length ? `<div class="unlock"><b>🔓 Відкрито за нейрончики!</b><div class="unlock-list">${opened.map(u=>u.kind==='balloon'
+        ? `<div class="unlock-item"><div class="thumb bal">${balloonSVG(u.id, balloonColor(u.id), 'me')}</div><span>Куля <b>${BALLOONS[u.id].name}</b></span></div>`
+        : `<div class="unlock-item"><div class="thumb">${trackPreview(TRACKS[trackIdx(u.id)])}</div><span>Регіон <b>${TRACKS[trackIdx(u.id)].emoji} ${TRACKS[trackIdx(u.id)].name}</b></span></div>`).join('')}</div></div>` : '') +
+    (proNow ? `<div class="unlock"><b>⚡ Ти друкуєш дуже швидко! Відкрито нові змагання</b><div class="unlock-list">${COMPS.filter(c=>c.pro).map(c=>
+        `<div class="unlock-item"><div class="thumb badge">${badgeHTML(c.badge)}</div><span>Змагання <b>${c.name}</b></span></div>`).join('')}</div></div>` : '') +
+    (earned.length ? `<div class="unlock"><b>🎉 ${earned.length > 1 ? 'Нові наліпки' : 'Нова наліпка'}!</b><div class="stickers">${earned.map(stickerHTML).join('')}</div></div>` : '');
+  document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
+
+  const againBtn = document.getElementById('againBtn');
+  againBtn.textContent = againLabel;
+  // Друга кнопка: посеред змагання — до його результатів, після вільного польоту — у гараж,
+  // після завершеного змагання її немає (лишається «До змагань»)
+  const midComp = c && profile.runs[c.id];
+  const exitBtn = document.getElementById('toSetupBtn');
+  exitBtn.hidden = !!c && !midComp;
+  exitBtn.textContent = midComp ? '📋 До результатів' : '🏁 До перегонів';
+  exitAction = midComp ? ()=>{ toSetup(); showTab('paneComp'); } : toSetup;
+  bindLinkButtons(document.getElementById('wComp'));
+
+  setTimeout(()=>{
+    if((won || solo) && !landed && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
+    else if(loud) sadTrombone(); else tone(330, .3, 'triangle', .07);
+    if(loud && (opened.length || proNow || earned.length)) sparkle(1.6);
+    overlay.classList.add('show');
+    againBtn.focus();
+  }, 700);
+}
+
+function toSetup(){
+  race = null;
+  raceEl.classList.remove('unfocused', 'paused');
+  alertEl.hidden = true;
+  cancelAnimationFrame(rafId);
+  overlay.classList.remove('show');
+  countdownEl.hidden = true;
+  raceEl.hidden = true;
+  fitTrack();
+  shareView.hidden = true;
+  document.body.classList.remove('ro');
+  trackEl.hidden = false;
+  trackEl.classList.remove('flying');
+  timerEl.hidden = true;
+  balBot.hidden = false;
+  mastEl.hidden = false;
+  setupEl.hidden = false;
+  balMe.classList.remove('low', 'burn'); balBot.classList.remove('burn', 'far');
+  renderSetup();
+  showTab(activeTab());
+}
+
+function confetti(n = 70){
+  const colors = ['#6C5CE7','#16A3A0','#FF6B4A','#FFC93C','#FF5D9E','#2D9CDB'];
+  for(let i=0;i<n;i++){
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    d.style.left = Math.random()*100 + 'vw';
+    d.style.background = colors[i % colors.length];
+    d.style.animationDuration = (2 + Math.random()*2) + 's';
+    d.style.animationDelay = Math.random()*0.6 + 's';
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 5000);
+  }
+}
+
+
+startBtn.addEventListener('click', ()=>activeTab() === 'paneComp' ? startComp(selComp) : startFree());
+document.getElementById('againBtn').addEventListener('click', ()=>againAction());
+document.getElementById('toSetupBtn').addEventListener('click', ()=>exitAction());
+document.getElementById('exitBtn').addEventListener('click', toSetup);
+// Esc під час польоту — повернутися в гараж
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && race && !overlay.classList.contains('show')) toSetup(); });
+// Хрестик або Esc у вікні результату — як друга кнопка вікна
+document.getElementById('winClose').addEventListener('click', ()=>exitAction());
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && overlay.classList.contains('show')) exitAction(); });
+
+/* ================= Вибір гравця ================= */
+const nameOverlay = document.getElementById('nameOverlay');
+const nameInput = document.getElementById('nameInput');
+const nameErr = document.getElementById('nameErr');
+let nameRequired = true;
+
+function openNameModal(required){
+  nameRequired = required;
+  document.getElementById('nameCancel').hidden = required;
+  const names = Object.keys(store.players);
+  const known = document.getElementById('knownPlayers');
+  known.innerHTML = names.length
+    ? `<span class="note-small" style="width:100%; margin:0">Уже грали на цьому пристрої — обери себе:</span>` +
+      names.map(n=>`<button type="button" class="chip-btn" data-n="${esc(n)}">👤 ${esc(n)}</button>`).join('')
+    : '';
+  known.querySelectorAll('.chip-btn').forEach(b=>b.addEventListener('click', ()=>enterGame(b.dataset.n)));
+  nameInput.value = '';
+  nameErr.textContent = '';
+  nameOverlay.classList.add('show');
+  setTimeout(()=>nameInput.focus(), 50);
+}
+document.getElementById('nameForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const n = nameInput.value.trim().replace(/\s+/g, ' ');
+  if(n.length < 2){ nameErr.textContent = 'Введи своє ім\'я (хоча б 2 літери).'; nameInput.focus(); return; }
+  enterGame(n);   // якщо таке ім'я вже є — просто продовжуємо його прогрес
+});
+document.getElementById('nameCancel').addEventListener('click', ()=>nameOverlay.classList.remove('show'));
+
+function enterGame(name){
+  if(location.hash) history.replaceState(null, '', location.pathname + location.search);
+  loadPlayer(name);
+  nameOverlay.classList.remove('show');
+  profileOverlay.classList.remove('show');
+  toSetup();
+  if(pendingComp) setTimeout(openPendingComp, 100);
+}
+
+/* ================= Профіль ================= */
+const profileOverlay = document.getElementById('profileOverlay');
+const miniBalloon = p => { const m = p.settings?.model || 'classic'; return `<span class="pb-bal">${balloonSVG(m, balloonColor(m, p.settings), 'me')}</span>`; };
+function renderPlayerBtn(){
+  document.getElementById('playerBal').innerHTML = balloonSVG(settings.model, balloonColor(settings.model), 'me');
+  document.getElementById('playerName').textContent = player || 'Гравець';
+}
+
+// Графік середньої швидкості за день (останні 14 днів із польотами); підказка з деталями — при наведенні на точку
+function renderSpeedChart(el, hist){
+  const days = Object.keys(hist).map(Number).sort((a, b)=>a - b).slice(-14);
+  if(days.length < 2){ el.innerHTML = `<p class="note-small">Графік з'явиться, коли будуть польоти у два різні дні.</p>`; return; }
+  const pts = days.map(d=>({ d, avg:Math.round(hist[d][0] / hist[d][1]), n:hist[d][1], best:hist[d][2] }));
+  const W = 440, H = 150, L = 34, R = 34, T = 14, B = 24;
+  const top = Math.max(10, Math.ceil(Math.max(...pts.map(p=>p.avg)) * 1.15 / 10) * 10);
+  const x = i => L + i * (W - L - R) / (pts.length - 1), y = v => T + (H - T - B) * (1 - v / top);
+  const day = d => fmtDay(d).slice(0, 5);
+  const grid = [0, top / 2, top].map(v=>`<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#E4E1F5"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`).join('');
+  const labels = [0, pts.length - 1].map(i=>`<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? 'end' : 'start'}">${day(pts[i].d)}</text>`).join('');
+  const line = `<polyline points="${pts.map((p, i)=>`${x(i)},${y(p.avg)}`).join(' ')}" fill="none" stroke="#16A3A0" stroke-width="2" stroke-linejoin="round"/>`;
+  const dots = pts.map((p, i)=>`<circle cx="${x(i)}" cy="${y(p.avg)}" r="4" fill="#16A3A0" stroke="#fff" stroke-width="2"/>`).join('');
+  const last = pts[pts.length - 1];
+  const lastLabel = `<text x="${x(pts.length - 1) + 8}" y="${y(last.avg) + 4}" class="val">${last.avg}</text>`;
+  const hits = pts.map((p, i)=>`<circle cx="${x(i)}" cy="${y(p.avg)}" r="12" fill="transparent" data-i="${i}"/>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Середня швидкість по днях">${grid}${labels}${line}${dots}${lastLabel}${hits}</svg><div class="chart-tip" hidden></div>`;
+  const tip = el.querySelector('.chart-tip');
+  el.querySelectorAll('[data-i]').forEach(c=>{
+    c.addEventListener('mouseenter', ()=>{
+      const p = pts[+c.dataset.i];
+      tip.innerHTML = `<b>${day(p.d)}</b> · середня ${p.avg} зн/хв<br>найкраща ${p.best} · польотів ${p.n}`;
+      tip.hidden = false;
+      const f = +c.getAttribute('cx') / W;
+      tip.style.left = f * 100 + '%';
+      tip.style.setProperty('--tx', f > .7 ? '-92%' : f < .3 ? '-8%' : '-50%');   // біля країв — щоб підказка не виходила за вікно
+      tip.style.top = (+c.getAttribute('cy') / H * 100) + '%';
+    });
+    c.addEventListener('mouseleave', ()=>tip.hidden = true);
+  });
+}
+function renderProfile(){
+  document.getElementById('profShare').innerHTML =
+    `<button type="button" class="share-ico" data-url="${esc(makeShareLink())}" title="Поділитися результатами">${LINK_ICON}</button>`;
+  bindLinkButtons(document.getElementById('profShare'));
+  document.getElementById('profAvatar').innerHTML = balloonSVG(settings.model, balloonColor(settings.model), 'me') + badgeHTML(settings.badge);
+  document.getElementById('profTitle').textContent = player;
+  document.getElementById('profStats').innerHTML =
+    `<span>${NEURON} <b>${profile.neurons}</b></span><span>польотів <b>${profile.races}</b></span>` +
+    `<span>перемог <b>${profile.wins}</b></span><span>змагань <b>${COMPS.filter(c=>profile.comps[c.id]).length}/${COMPS.filter(c=>compVisible(c)).length}</b></span>` +
+    `<span>наліпок <b>${Object.keys(profile.stickers).length}/${STICKERS.length}</b></span>`;
+  renderSpeedChart(document.getElementById('profChart'), profile.hist || {});
+  const list = document.getElementById('playerList');
+  const names = Object.keys(store.players).sort((a, b)=>a===player ? -1 : b===player ? 1 : a.localeCompare(b, 'uk'));
+  list.innerHTML = names.map(n=>{
+    const p = store.players[n], me = n === player;
+    return `<div class="pl-row${me ? ' me' : ''}">${miniBalloon(p)}
+      <span class="pl-name">${esc(n)}<small>${NEURON} ${p.neurons || 0} · наліпок ${Object.keys(p.stickers || {}).length} з ${STICKERS.length}</small></span>
+      ${me ? '<span class="pl-you">це ти</span>' : `<button type="button" class="btn btn-primary btn-small" data-play="${esc(n)}">Грати</button>`}
+      <button type="button" class="pl-del" data-del="${esc(n)}" title="Видалити гравця">✕</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-play]').forEach(b=>b.addEventListener('click', ()=>enterGame(b.dataset.play)));
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', ()=>deletePlayer(b.dataset.del)));
+  document.getElementById('addInput').value = '';
+  document.getElementById('addErr').textContent = '';
+}
+function openProfile(){
+  if(!player){ openNameModal(true); return; }
+  if(race) toSetup();
+  renderProfile();
+  profileOverlay.classList.add('show');
+}
+function deletePlayer(name){
+  if(!confirm(`Видалити гравця «${name}» з цього пристрою разом із прогресом?`)) return;
+  delete store.players[name];
+  if(name !== player){ saveStore(); renderProfile(); return; }
+  // Видалили себе: переходимо до іншого гравця або просимо ім'я
+  const other = Object.keys(store.players)[0];
+  if(other){ enterGame(other); return; }
+  store.current = null;
+  saveStore();
+  player = null;
+  profile = newProfile();
+  settings = profile.settings;
+  selComp = null;
+  renderHUD();
+  renderPlayerBtn();
+  profileOverlay.classList.remove('show');
+  toSetup();
+  openNameModal(true);
+}
+document.getElementById('addForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const n = document.getElementById('addInput').value.trim().replace(/\s+/g, ' ');
+  if(n.length < 2){ document.getElementById('addErr').textContent = 'Введи ім\'я (хоча б 2 літери).'; return; }
+  enterGame(n);   // такий гравець уже є — просто перемикаємося на нього
+});
+document.getElementById('playerBtn').addEventListener('click', openProfile);
+document.getElementById('profClose').addEventListener('click', ()=>profileOverlay.classList.remove('show'));
+profileOverlay.addEventListener('click', e=>{ if(e.target === profileOverlay) profileOverlay.classList.remove('show'); });
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Escape') return;
+  profileOverlay.classList.remove('show');
+  if(!nameRequired) nameOverlay.classList.remove('show');
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(!confirm(`Скинути весь прогрес гравця «${player}»? Нейрончики, кулі, рекорди й медалі почнуться спочатку.`)) return;
+  store.players[player] = newProfile();
+  enterGame(player);
+});
+
+/* ================= Посилання ================= */
+// Дані кодуються в частину адреси після «#», тож сервер не потрібен:
+// #r=… — досягнення гравця, #c=… — результати змагання, #z=N — відкрити змагання N
+function b64urlEncode(str){
+  let bin = '';
+  new TextEncoder().encode(str).forEach(b=>bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlDecode(s){
+  s = s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length % 4) s += '=';
+  return new TextDecoder().decode(Uint8Array.from(atob(s), c=>c.charCodeAt(0)));
+}
+const baseURL = () => location.href.split('#')[0];
+const num = (x, max) => Math.max(0, Math.min(max, Math.round(+x) || 0));
+const cleanName = n => String(n || 'Гравець').slice(0, 24);
+
+function makeShareLink(){
+  const cp = {};
+  for(const c of COMPS){ const r = profile.comps[c.id]; if(r) cp[c.id] = [MEDAL_RANK[r.medal], r.day, avg(r.s, 1), avg(r.s, 2)]; }
+  const data = { v:3, n:player, x:profile.neurons, b:profile.bests, r:profile.races, w:profile.wins,
+                 m:settings.model, k:balloonColor(settings.model), bd:settings.badge, cp, f:profile.since, d:today() };
+  return baseURL() + '#r=' + b64urlEncode(JSON.stringify(data));
+}
+function makeResultLink(c, result){
+  const data = { v:1, n:player, bd:settings.badge, k:balloonColor(result.m || 'classic'), m:result.m || 'classic', c:c.id, s:result.s, d:result.day };
+  return baseURL() + '#c=' + b64urlEncode(JSON.stringify(data));
+}
+function readHash(prefix){
+  const m = location.hash.match(new RegExp(`^#${prefix}=([A-Za-z0-9_-]+)$`));
+  if(!m) return null;
+  try{ return JSON.parse(b64urlDecode(m[1])); }catch(e){ return null; }
+}
+function readProfileLink(){
+  const d = readHash('r');
+  if(!d || d.v !== 3) return null;
+  const b = {};
+  for(const lang of ['uk','en']) for(const t of TRACKS){ const v = num(d.b?.[bestKey(lang, t.id)], 1500); if(v) b[bestKey(lang, t.id)] = v; }
+  const cp = {};
+  const RANK_MEDAL = ['', 'bronze', 'silver', 'gold'];
+  for(const c of COMPS){ const x = d.cp?.[c.id]; if(Array.isArray(x) && RANK_MEDAL[num(x[0], 3)]) cp[c.id] = { medal:RANK_MEDAL[num(x[0], 3)], day:num(x[1], 1e6), sp:num(x[2], 1500), ac:num(x[3], 100) }; }
+  return { n:cleanName(d.n), x:num(d.x, 1e7), b, r:num(d.r, 1e6), w:num(d.w, 1e6),
+           m: BALLOON_ORDER.includes(d.m) ? d.m : 'classic', k: COLORS.includes(d.k) ? d.k : COLORS[0],
+           bd: BADGES[d.bd] ? d.bd : '', cp, f:num(d.f, 1e6), d:num(d.d, 1e6) };
+}
+function readResultLink(){
+  const d = readHash('c');
+  const c = d && compById(d.c);
+  if(!c || !Array.isArray(d.s) || d.s.length > c.stages.length) return null;
+  const s = d.s.map(x=>[num(x?.[0], 36000), num(x?.[1], 1500), num(x?.[2], 100), x?.[3] ? 1 : 0]);
+  return { n:cleanName(d.n), bd: BADGES[d.bd] ? d.bd : '', k: COLORS.includes(d.k) ? d.k : COLORS[0], m: BALLOON_ORDER.includes(d.m) ? d.m : 'classic', c, s, medal: s.length === c.stages.length ? medalOf(s) : null, d:num(d.d, 1e6) };
+}
+
+
+/* ================= Сторінки за посиланням ================= */
+const shareView = document.getElementById('shareView');
+function prepareShared(track, balHTML){
+  document.body.classList.add('ro');   // чужі дані: власний профіль не показуємо й нічого не змінюємо
+  trackEl.hidden = !track;
+  race = null;
+  cancelAnimationFrame(rafId);
+  overlay.classList.remove('show');
+  countdownEl.hidden = true;
+  setupEl.hidden = true;
+  raceEl.hidden = true;
+  startBar.hidden = true;
+  shareView.hidden = false;
+  if(!track) return;
+  applyTrack(track);
+  balMe.innerHTML = balHTML;
+  balMe.style.left = '50%';
+  balMe.style.setProperty('--h', .5);
+  balBot.hidden = true;
+  mastEl.hidden = true;
+  timerEl.hidden = true;
+}
+
+// Результати змагання за посиланням
+function showResult(d){
+  const c = d.c, n = c.stages.length;
+  prepareShared(c.stages[Math.max(0, d.s.length - 1)][0], balloonSVG(d.m, d.k, 'me') + nameTag(d.n, d.bd));
+  const total = d.s.reduce((t, x)=>t + x[0], 0);
+  const wins = d.s.filter(x=>x[3]).length;
+  shareView.innerHTML = `
+    <div class="cert">
+      <div class="cert-head">${badgeHTML(c.badge)}
+        <div><div class="cert-kicker">Результати змагання</div><h2>${c.name}</h2></div>
+        <div class="cert-medal">${d.medal ? `${MEDALS[d.medal][0]}<small>${MEDALS[d.medal][1]}</small>` : `🎈<small>пройдено ${d.s.length} з ${n}</small>`}</div>
+      </div>
+      <div class="cert-who">Учасник: <b>${badgeHTML(d.bd)} ${esc(d.n)}</b>${d.d ? ` · ${fmtDay(d.d)}` : ''}</div>
+      <div class="table-scroll"><table class="res-table">
+        <thead><tr><th>Етап</th><th>Регіон</th><th>Час</th><th>Швидкість, зн/хв</th><th>Точність</th><th>Результат</th></tr></thead>
+        <tbody>${c.stages.map(([track, lang], i)=>{ const t = TRACKS[trackIdx(track)], x = d.s[i];
+          return `<tr><td>${i+1}</td><td>${t.emoji} ${t.name} ${LANG_FLAG[lang]}</td>` + (x
+            ? `<td>${fmtTime(x[0])}</td><td>${x[1]}</td><td>${x[2]}%</td><td>${x[3] ? '<span class="won">Перемога</span>' : '2 місце'}</td></tr>`
+            : `<td>—</td><td>—</td><td>—</td><td>ще не пройдено</td></tr>`); }).join('')}</tbody>
+        ${d.s.length ? `<tfoot><tr><td colspan="2">Разом</td><td>${fmtTime(total)}</td><td>${avg(d.s, 1)}</td><td>${avg(d.s, 2)}%</td><td>${wins} з ${d.s.length}</td></tr></tfoot>` : ''}
+      </table></div>
+    </div>
+    <div class="share-actions"><button class="btn btn-ghost" id="ownBtn">Закрити</button></div>`;
+  document.getElementById('ownBtn').addEventListener('click', leaveShared);
+}
+
+// Досягнення гравця
+function showProfile(d){
+  prepareShared(null);
+  const cell = k => d.b[k] ? `<b>${d.b[k]}</b>` : '—';
+  shareView.innerHTML = `
+    <div class="ach-head">
+      <div class="prof-avatar">${balloonSVG(d.m, d.k, 'me')}${badgeHTML(d.bd)}</div>
+      <div>
+        <div class="cert-kicker">Досягнення гравця</div>
+        <h2>${esc(d.n)}</h2>
+        <div class="prof-stats"><span>${NEURON} <b>${d.x}</b></span><span>польотів <b>${d.r}</b></span><span>перемог <b>${d.w}</b></span></div>
+        ${d.d ? `<span class="share-date">станом на ${fmtDay(d.d)}</span>` : ''}
+      </div>
+    </div>
+    <div class="share-sec"><h3>Змагання · ${Object.keys(d.cp).length} з ${COMPS.filter(c=>!c.pro || d.cp[c.id]).length}</h3><div class="medals">
+      ${COMPS.filter(c=>!c.pro || d.cp[c.id]).map(c=>{ const x = d.cp[c.id];
+        return `<div class="medal-item${x ? ' got' : ''}" title="${x ? `${MEDALS[x.medal][1]} · ${fmtDay(x.day)} · ${x.sp} зн/хв, ${x.ac}%` : 'Ще не пройдено'}">
+          ${badgeHTML(c.badge)}${x ? `<span class="m">${MEDALS[x.medal][0]}</span>` : ''}<small>${c.name}</small></div>`; }).join('')}
+    </div></div>
+    <div class="share-sec"><h3>Кулі</h3><div class="cards balloons">
+      ${BALLOON_ORDER.map(id=>{ const open = isOpen('balloon', id, d.x);
+        return `<div class="pick static${open ? '' : ' locked'}"><span class="bal-prev">${balloonSVG(id, open ? d.k : '#999', 'me')}</span><span class="label">${BALLOONS[id].name}</span></div>`; }).join('')}
+    </div></div>
+    <div class="share-sec"><h3>Рекорди швидкості, знаків/хв</h3><div class="table-scroll">
+      <table class="best-table"><tr><th></th>${TRACKS.map(t=>`<th>${t.emoji} ${t.name}</th>`).join('')}</tr>
+        <tr><td>${FLAGS.uk}</td>${TRACKS.map(t=>`<td>${cell(bestKey('uk', t.id))}</td>`).join('')}</tr>
+        <tr><td>${FLAGS.en}</td>${TRACKS.map(t=>`<td>${cell(bestKey('en', t.id))}</td>`).join('')}</tr>
+      </table></div></div>
+    <div class="share-actions"><button class="btn btn-ghost" id="ownBtn">Закрити</button></div>`;
+  document.getElementById('ownBtn').addEventListener('click', leaveShared);
+}
+function leaveShared(){
+  history.replaceState(null, '', location.pathname + location.search);
+  startGame();
+}
+function startGame(){
+  if(store.current && store.players[store.current]) enterGame(store.current);
+  else { toSetup(); openNameModal(true); }
+}
+// Посилання на змагання: …/balloon-race-kids/#z=3
+let pendingComp = 0;
+function openPendingComp(){
+  const n = pendingComp;
+  if(!n) return;
+  pendingComp = 0;
+  if(!compVisible(COMPS[n - 1])) return;   // змагання pro за посиланням не відкриваємо
+  if(!switchComp(COMPS[n - 1].id)){ showTab('paneComp'); return; }
+  showTab('paneComp');
+  window.scrollTo({ top:0 });
+}
+
+function route(){
+  const res = readResultLink(), prof = readProfileLink();
+  const z = location.hash.match(/^#z=(\d+)$/);
+  if(z && +z[1] >= 1 && +z[1] <= COMPS.length) pendingComp = +z[1];
+  if(res) showResult(res);
+  else if(prof) showProfile(prof);
+  else startGame();
+}
+// Прихований перемикач гучного режиму: ?zvuk=klas або ?zvuk=tykho (параметр одразу зникає з адреси) чи Ctrl+Alt+Z
+{
+  const q = new URLSearchParams(location.search), z = q.get('zvuk');
+  if(z === 'klas' || z === 'tykho'){
+    q.delete('zvuk');
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    setLoud(z === 'klas');
+  }
+}
+document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyZ'){ e.preventDefault(); setLoud(!loud); } });
+// Ctrl+Alt+B: нормативи 5–7 класів увімкнути або вимкнути. Прогрес у режимах окремий, тож сторінка перезавантажується.
+// preventDefault: у полі введення комбінація не надрукує символ і не зарахується як помилка.
+// ?boost з адреси прибираємо, інакше він знову ввімкне режим
+document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyB'){ e.preventDefault(); toggleBoost(); } });
+function toggleBoost(){
+  try{
+    localStorage.setItem(BOOST_KEY, BOOST ? 'off' : 'on');
+    sessionStorage.setItem(BOOST_KEY + '-toast', '1');
+  }catch(e){ showToast('Не вдалося зберегти налаштування'); return; }
+  const q = new URLSearchParams(location.search);
+  q.delete('boost');
+  const rest = q.toString().replace(/=(?=&|$)/g, '');
+  history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  location.reload();
+}
+try{
+  if(sessionStorage.getItem(BOOST_KEY + '-toast')){
+    sessionStorage.removeItem(BOOST_KEY + '-toast');
+    showToast(BOOST ? 'Нормативи 5–7 класів' : 'Звичайні нормативи');
+  }
+}catch(e){}
+// Офлайн: обробник sw.js зберігає гру в браузері, щоб вона відкривалась без інтернету.
+// Працює лише на сайті (http/https); з папки (file://) гра й так відкривається без мережі
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+route();
+window.addEventListener('hashchange', ()=>{ if(readResultLink() || readProfileLink()) route(); });
+</script>
+
+</body>
+</html>
