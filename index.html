@@ -11,6 +11,7 @@
 <meta name="theme-color" content="#16A3A0">
 <script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
 <script src="/account.js"></script>   <!-- спільний акаунт учня з каталогу; без нього гра питає ім'я, як раніше -->
+<script src="/duel.js"></script>   <!-- «Разом»: заплив з однокласником; без акаунта його немає -->
 <script src="rivers.js"></script>   <!-- довідки про траси й схеми -->
 <style>
   :root{
@@ -458,7 +459,7 @@
   .pilot-pick svg{display:block; width:100%; height:100%;}
   .pilot-pick:hover{border-color:var(--teal);}
   .pilot-pick.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--ink);}
-  .start-over{position:absolute; inset:0; z-index:4; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .start-over{position:absolute; inset:0; z-index:4; display:flex; align-items:center; justify-content:center; gap:14px; pointer-events:none;}
   .start-over .btn{pointer-events:auto; box-shadow:0 4px 0 var(--teal-dark), 0 10px 24px rgba(27,27,58,.3);}
   .race-info{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--ink-soft); margin:-4px 0 10px;}
   .race-info:empty{display:none;}
@@ -617,7 +618,7 @@
 
 <main class="container">
   <section class="track" id="track" aria-label="Річка траси">
-    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚣 На старт!</button></div>
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚣 На старт!</button><button class="btn btn-ghost btn-big" id="duelBtn" hidden>🧑‍🤝‍🧑 Разом</button></div>
     <span class="track-name" id="trackName"></span>
     <div class="timer" id="timer" hidden><span id="timerNum">1:00</span><span class="tbar"><i></i></span>🏁</div>
     <div class="clouds" id="clouds"></div>
@@ -1711,6 +1712,7 @@ function renderSetup(){
 /* ================= Вкладки й змагання ================= */
 const startBar = document.getElementById('startBar');
 const startBtn = document.getElementById('startBtn');
+const duelBtn = document.getElementById('duelBtn');
 const activeTab = () => document.querySelector('.tab.on')?.dataset.tab || 'paneFree';
 function showTab(id){
   if(id === 'paneComp' && !compById(selComp)) id = 'paneComps';
@@ -1721,6 +1723,7 @@ function showTab(id){
   if(id === 'paneComp'){ renderCompPane(); previewComp(); startBar.hidden = false; }
   else if(id === 'paneComps'){ renderComps(); startBar.hidden = true; }
   else { applyTrack(settings.track); drawBoats(); parkBoats(); startBar.hidden = false; }
+  duelBtn.hidden = !(id === 'paneFree' && window.Duel?.available());   // «Разом» — лише у вільному запливі
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(!t.classList.contains('on')) showTab(t.dataset.tab); }));
 
@@ -2058,6 +2061,7 @@ function scrollLines(){
 
 // opts: { track, lang, cpm, model, comp, level?, text?, more? }
 function startRace(opts){
+  if(race?.duel && race.duel !== opts.duel) window.Duel.leave();   // з екрана результату «Разом» одразу в інший заплив
   overlay.classList.remove('show');
   cancelAnimationFrame(rafId);
   const level = opts.level || TRACK_LEVEL[opts.track];
@@ -2065,7 +2069,7 @@ function startRace(opts){
   race = {
     text: opts.text || makeText(opts.lang, level, pace, opts.cpm), more: opts.more || (()=>makeText(opts.lang, level, pace, opts.cpm)),
     pace, weak:{}, drill:opts.drill || null, track:opts.track, lang:opts.lang, level, model:opts.model, comp:opts.comp || null,
-    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
+    pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot, duel:opts.duel || null,
     botCpm:opts.cpm, botChars:0, botFair:0, rate:0, seed:Math.random()*10, lastFrame:0,
     assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
     // човен учня: view — де його показує камера, flow — течія; maxGap — найдовша зупинка між правильними літерами, мс
@@ -2080,6 +2084,7 @@ function startRace(opts){
   applyTrack(opts.track);
   buildKeyboard();
   drawBoats(opts.model);
+  if(race.duel) drawOpp(race.duel.opp, opts.model);
   boatMe.classList.remove('moving', 'bump');
   boatBot.classList.remove('moving');
   boatBot.hidden = race.noBot;
@@ -2091,7 +2096,7 @@ function startRace(opts){
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
     : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}` : '';
   const notes = [BOOST && 'нормативи 5–7 класів'];
-  if(!c && !race.drill) notes.push(TEACHER.noBot ? 'заплив без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
+  if(!c && !race.drill && !race.duel) notes.push(TEACHER.noBot ? 'заплив без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
   document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
   renderText();
   spans[0].classList.add('cur');
@@ -2184,14 +2189,14 @@ function loop(now){
   const raw = now - race.lastFrame;
   const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
-  if(race.hold.focus || race.hold.alert || race.hold.pause){   // пауза: годинник, робот і човен стоять
+  if(!race.duel && (race.hold.focus || race.hold.alert || race.hold.pause)){   // пауза: годинник, робот і човен стоять (у «Разом» суперник не чекає)
     race.startT += raw;
     if(race.lastKeyT) race.lastKeyT += raw;
     rafId = requestAnimationFrame(loop);
     return;
   }
   const t = Math.min(RACE_SEC, (now - race.startT) / 1000);
-  if(!race.noBot){
+  if(!race.noBot && !race.duel){   // у «Разом» човен суперника рухає його прогрес (onOpp)
     const k = 1 + 0.14*Math.sin(t*0.9 + race.seed) + 0.06*Math.sin(t*2.7 + race.seed*2);   // робот то пришвидшується, то гальмує
     if(race.assist){
       // Непомітна підтримка: поки дитина друкує, робот, що відірвався, плавно пригальмовує
@@ -2215,12 +2220,16 @@ function loop(now){
       race.botChars += speed * dt;
     }
   }
+  if(race.duel && race.oppAt){   // «Разом»: між оновленнями пливемо зі швидкістю суперника, але не далі ніж на 0,8 знака від його позиції
+    const ahead = race.oppFin || race.oppLeft ? race.oppPos : race.oppPos + Math.min(0.8, (race.oppRate || 0) * (now - race.oppAt) / 1000);
+    race.botChars = Math.max(race.botChars, race.botChars + (ahead - race.botChars) * Math.min(1, dt * 8));
+  }
   // Човен учня: камера м'яко доганяє його після кожної літери, тож зупинка — плавне гальмування
   race.view += (race.pos - race.view) * Math.min(1, dt * GLIDE);
   race.flow += dt * 12;   // течія: хвилі пливуть, навіть коли човен стоїть, пікселів за секунду
   const idle = (now - Math.max(race.lastKeyT, race.startT)) / 1000;
   boatMe.classList.toggle('moving', !!race.lastKeyT && idle < 1.5);
-  boatBot.classList.toggle('moving', !race.noBot && t >= race.botDelay);
+  boatBot.classList.toggle('moving', race.duel ? !race.oppFin && !race.oppLeft && now - (race.oppAt || 0) < 1500 : !race.noBot && t >= race.botDelay);
   if(idle > IDLE_TIP && !race.idleTip){ race.idleTip = true; showTip('🛶 Човен зупинився — друкуй, щоб пливти!'); }
   drawRace(race.view, race.botChars, race.flow);
   updateTimer(t);
@@ -2321,6 +2330,7 @@ function handleChar(ch){
     race.lastKeyT = now;
     race.idleTip = false;
     race.rate += 60 / CHASE.tau;
+    if(race.duel) window.Duel.pos(race.pos);
     if(race.text.length - race.pos < TEXT_MORE) extendText();
     if(++race.streak % STREAK_STEP === 0) praise(race.streak);
     race.topStreak = Math.max(race.topStreak, race.streak);
@@ -2388,8 +2398,28 @@ document.addEventListener('keydown', e=>{
 
 
 let againAction = startFree, exitAction = toSetup;
+// «Разом»: після свого фінішу чекаємо, скільки пропливе суперник (його fin), але не довше DUEL_WAIT мс —
+// старт в обох одночасний і годинник не стоїть, тож fin приходить майже одразу. Не прийшов — беремо його останню позицію
+const DUEL_WAIT = 3000;
 function finish(){
-  const now = performance.now();
+  if(race.duel && race.phase === 'race'){
+    race.phase = 'wait';
+    race.endT = performance.now();
+    window.Duel.finish();
+    boatMe.classList.remove('moving'); boatBot.classList.remove('moving');
+    showNextKey(undefined);
+    if(!race.oppFin && !race.oppLeft){
+      showTip(`⏳ Час вийшов! Дивимось, скільки пропливе ${race.duel.opp.label}…`);
+      const r = race;
+      setTimeout(()=>{ if(race === r && r.phase === 'wait') finish(); }, DUEL_WAIT);
+      return;
+    }
+  }
+  if(race.duel){
+    if(race.phase !== 'wait') return;
+    race.botChars = race.oppPos || 0;   // переможця вирішує справжня дистанція суперника
+  }
+  const now = race.endT || performance.now();   // у «Разом» — мить свого фінішу, без часу очікування
   race.phase = 'done';
   cancelAnimationFrame(rafId);
   boatMe.classList.remove('moving'); boatBot.classList.remove('moving');
@@ -2472,7 +2502,7 @@ function finish(){
   const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
   // Наліпки
   const gap = Math.max(race.maxGap, now - Math.max(race.lastKeyT, race.startT));   // і зупинка перед самим фінішем
-  const run = { won, typed, errors:race.errors, topStreak:race.topStreak, nonstop: typed >= PACE_EMA.minChars && gap <= NONSTOP,
+  const run = { won:won && !race.duel, typed, errors:race.errors, topStreak:race.topStreak, nonstop: typed >= PACE_EMA.minChars && gap <= NONSTOP,
                 newRecord:record && prevBest > 0, drill:!!race.drill };
   const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
   earned.forEach(st=>profile.stickers[st.id] = today());
@@ -2482,9 +2512,10 @@ function finish(){
 
   // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
   const failed = c && !(won && acc >= c.minAcc);
-  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? '🤖' : failed ? '🎯' : '🏆';
-  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? 'Робот проплив далі' : failed ? 'Етап не зараховано' : 'Перемога!';
-  document.getElementById('wSub').textContent = solo ? `Твій човен проплив ${typed} м` : `Твій човен — ${typed} м, робот — ${botDist} м${won ? '' : '. Наступного разу вийде!'}`;
+  const opp = race.duel?.opp.label, tie = !won && typed === botDist;
+  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? (opp ? (tie ? '🤝' : '🏁') : '🤖') : failed ? '🎯' : '🏆';
+  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? (opp ? (tie ? 'Порівну!' : `${opp} пропливає більше`) : 'Робот проплив далі') : failed ? 'Етап не зараховано' : opp ? 'Ти пропливаєш більше!' : 'Перемога!';
+  document.getElementById('wSub').textContent = solo ? `Твій човен проплив ${typed} м` : `Твій човен — ${typed} м, ${opp || 'робот'} — ${botDist} м${won || tie ? '' : '. Наступного разу вийде!'}`;
   document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
   document.getElementById('wSpeed').textContent = speed;
   document.getElementById('wAcc').textContent = acc + '%';
@@ -2511,6 +2542,7 @@ function finish(){
       `</div>` : '');
   document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
 
+  if(race.duel){ againAction = ()=>{ toSetup(); openDuel(); }; againLabel = '🧑‍🤝‍🧑 Ще раз разом'; }
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
   // Друга кнопка: посеред змагання — до його результатів, після вільного запливу — на причал,
@@ -2532,6 +2564,7 @@ function finish(){
 }
 
 function toSetup(){
+  if(race?.duel) window.Duel.leave();
   race = null;
   raceEl.classList.remove('unfocused', 'paused');
   alertEl.hidden = true;
@@ -2568,6 +2601,51 @@ function confetti(n = 70){
 
 
 startBtn.addEventListener('click', ()=>activeTab() === 'paneComp' ? startComp(selComp) : startFree());
+
+/* ================= «Разом»: заплив з однокласником (/duel.js каталогу; у коді — duel) ================= */
+// Той, хто кличе, задає трасу, мову й текст; суперник пливе тим самим. Човен робота стає човном суперника.
+// Текст повторюється (more), тож в обох він однаковий, скільки б не пропливли; у базі — до 1000 знаків
+function openDuel(){
+  window.Duel.open({
+    make: ()=>{
+      const level = TRACK_LEVEL[settings.track], t = TRACKS[trackIdx(settings.track)];
+      let text = makeText(settings.lang, level, 0, 500);
+      if(text.length > 1000) text = text.slice(0, text.lastIndexOf(' ', 1000));
+      return { text, lang:settings.lang, track:settings.track, level, model:settings.model,
+               color:boatColor(settings.model), badge:settings.badge, desc:`Траса «${t.name}» · ${settings.lang === 'en' ? 'англійська' : 'українська'}` };
+    },
+    start: startDuel,
+    solo: startFree,   // немає інтернету — пливемо з роботом
+  });
+}
+function startDuel(d){
+  startRace({ track:d.track, lang:d.lang, level:d.level, text:d.text, more:()=>d.text, model:settings.model, cpm:0, duel:d });
+  d.onOpp = o=>{
+    if(!race || race.duel !== d) return;
+    // Прогрес приходить уривками (раз на 0,2 с і з затримкою мережі), тож човен веде loop: він пливе зі швидкістю,
+    // з якою друкує суперник (oppRate, знаків/с), і плавно підтягується до його справжньої позиції (oppPos)
+    if(o.pos > (race.oppPos || 0)){
+      const t = performance.now();
+      if(race.oppAt){ const inst = (o.pos - race.oppPos) / Math.max(0.05, (t - race.oppAt) / 1000); race.oppRate = race.oppRate ? race.oppRate * 0.6 + inst * 0.4 : inst; }
+      race.oppPos = o.pos;
+      race.oppAt = t;
+    }
+    if(o.fin) race.oppFin = true;
+    else if(o.left && !race.oppLeft){
+      race.oppLeft = true;
+      if(race.phase === 'race') showTip(`${d.opp.label} уже не в заїзді. Пливи далі!`);
+    }
+    if(race.phase === 'wait' && (race.oppFin || race.oppLeft)) finish();
+  };
+}
+// Човен суперника на місці робота: його плавзасіб, колір і табличка з ніком; пілот і прапорець — звичайні
+function drawOpp(o, myModel){
+  const model = BOATS[o.model] ? o.model : 'rowboat';
+  const mine = boatColor(myModel);
+  const color = !/^#[0-9a-f]{3,8}$/i.test(o.color || '') || o.color === mine ? (mine === BOT_COLOR ? '#16A3A0' : BOT_COLOR) : o.color;
+  boatBot.innerHTML = boatSVG(model, color, 'me', 'ua', 'kid') + nameTag(o.label, o.badge || '');
+}
+duelBtn.addEventListener('click', openDuel);
 document.getElementById('againBtn').addEventListener('click', ()=>againAction());
 document.getElementById('toSetupBtn').addEventListener('click', ()=>exitAction());
 document.getElementById('exitBtn').addEventListener('click', toSetup);
