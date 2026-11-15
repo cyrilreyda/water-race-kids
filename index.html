@@ -345,6 +345,7 @@
   .prof-foot .share-ico{position:static;}   /* «поділитися» — унизу праворуч, поруч із «скинути мій прогрес» */
   .win.prof h2{text-align:center; font-size:24px;}
   .prof-avatar{position:relative; width:150px; margin:0 auto 6px; padding:16px 34px 8px; border-radius:var(--radius-l); background:linear-gradient(180deg, #E3F7F6, #F6F5FB);}
+  .prof-games{margin:-2px 0 8px; text-align:center;}   /* «🏅 Мої ігри» під аватаром — лише з акаунтом сайту */
   .prof-avatar svg{display:block; width:100%; height:auto; overflow:visible;}
   .prof-avatar .badge-ico{position:absolute; top:-8px; right:-10px; width:52px; height:52px;}
   .prof-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; margin:4px 0 6px; font-size:14px; color:var(--ink-soft);}
@@ -742,6 +743,7 @@
   <div class="win prof" role="dialog" aria-labelledby="profTitle">
     <button class="prof-close" id="profClose" type="button" title="Закрити вікно" aria-label="Закрити вікно">✕</button>
     <div class="prof-avatar" id="profAvatar"></div>
+    <div class="prof-games" id="profGames" hidden><button class="link-btn" id="profGamesBtn" type="button">🏅 Мої ігри</button></div>
     <h2 id="profTitle"></h2>
     <div class="prof-stats" id="profStats"></div>
     <h3>Швидкість по днях, знаків/хв</h3>
@@ -1483,18 +1485,17 @@ function renderHUD(pop){
 }
 
 /* ================= Звук ================= */
-const soundOn = true;
-// Гучний режим для класу: голосніше й більше ефектів (хлопавка, фанфари, конфеті).
-// Учням його не показуємо: вмикає вчитель адресою ?zvuk=klas (вимикає ?zvuk=tykho) або Ctrl+Alt+Z.
-// Режим запам'ятовується на цьому пристрої
-const SOUND_KEY = 'water-race-kids-sound';
+// Звук — один перемикач для всіх ігор сайту на цьому пристрої: 'off' — без звуку, інакше звук є.
+// Учням його не показуємо: вимикає вчитель адресою ?zvuk=tykho (вмикає ?zvuk=klas) або Ctrl+Alt+Z
+const SOUND_KEY = 'site-sound';
+let soundOn = true;
+try{ soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; }catch(e){}
+// Гучного режиму для класу (голосніше, хлопавка, фанфари, конфеті) більше немає: loud завжди false
 let loud = false;
-try{ loud = localStorage.getItem(SOUND_KEY) === 'loud'; }catch(e){}
-function setLoud(on){
-  loud = on;
-  try{ localStorage.setItem(SOUND_KEY, on ? 'loud' : 'quiet'); }catch(e){}
-  showToast(on ? '🔊 Гучний режим для класу' : '🔈 Тихий режим');
-  if(on) celebrate(false);
+function setSound(on){
+  soundOn = on;
+  try{ localStorage.setItem(SOUND_KEY, on ? 'on' : 'off'); }catch(e){}
+  showToast(on ? '🔊 Звук увімкнено' : '🔇 Без звуку');
 }
 
 let actx = null;
@@ -2438,6 +2439,7 @@ function finish(){
   const record = (won || solo) && speed > prevBest;  // рекорд — лише за виграний заплив
   if(record) profile.bests[key] = speed;
   profile.races++;
+  ACC?.played();   // «Мої ігри» на сайті: ця гра зіграна (повтори account.js пропускає сам)
   if(!race.drill){   // швидкість по днях — для графіка в профілі: [сума швидкостей, запливів, найкраща]
     const h = (profile.hist ||= {})[today()] ||= [0, 0, 0];
     h[0] += speed; h[1]++; h[2] = Math.max(h[2], speed);
@@ -2791,6 +2793,10 @@ function renderProfile(){
     `<button type="button" class="share-ico" data-url="${esc(makeShareLink())}" title="Поділитися результатами">${LINK_ICON}</button>`;
   bindLinkButtons(document.getElementById('profShare'));
   document.getElementById('profAvatar').innerHTML = boatSVG(settings.model, boatColor(settings.model), 'me') + badgeHTML(settings.badge);
+  // «Мої ігри» (усі ігри сайту й наліпки за них) відкриває клік на аватар або кнопку під ним — лише з акаунтом сайту
+  const games = !!ACC?.user, av = document.getElementById('profAvatar');
+  av.style.cursor = games ? 'pointer' : ''; av.title = games ? 'Мої ігри' : '';
+  document.getElementById('profGames').hidden = !games;
   document.getElementById('profTitle').textContent = player;
   document.getElementById('profStats').innerHTML =
     `<span>${NEURON} <b>${profile.neurons}</b></span><span>запливів <b>${profile.races}</b></span>` +
@@ -2856,6 +2862,9 @@ document.getElementById('addForm').addEventListener('submit', e=>{
 });
 document.getElementById('playerBtn').addEventListener('click', openProfile);
 document.getElementById('profClose').addEventListener('click', ()=>profileOverlay.classList.remove('show'));
+const openGames = ()=>{ if(ACC?.user) ACC.showGames(); };
+document.getElementById('profAvatar').addEventListener('click', openGames);
+document.getElementById('profGamesBtn').addEventListener('click', openGames);
 profileOverlay.addEventListener('click', e=>{ if(e.target === profileOverlay) profileOverlay.classList.remove('show'); });
 document.addEventListener('keydown', e=>{
   if(e.key !== 'Escape') return;
@@ -3030,16 +3039,16 @@ function route(){
   else if(prof) showProfile(prof);
   else startGame();
 }
-// Прихований перемикач гучного режиму: ?zvuk=klas або ?zvuk=tykho (параметр одразу зникає з адреси) чи Ctrl+Alt+Z
+// Прихований перемикач звуку (спільний для всіх ігор сайту): ?zvuk=klas або ?zvuk=tykho (параметр одразу зникає з адреси) чи Ctrl+Alt+Z
 {
   const q = new URLSearchParams(location.search), z = q.get('zvuk');
   if(z === 'klas' || z === 'tykho'){
     q.delete('zvuk');
     history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
-    setLoud(z === 'klas');
+    setSound(z === 'klas');
   }
 }
-document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyZ'){ e.preventDefault(); setLoud(!loud); } });
+document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.altKey && e.code === 'KeyZ'){ e.preventDefault(); setSound(!soundOn); } });
 // Ctrl+Alt+B: нормативи 5–7 класів увімкнути або вимкнути. Прогрес у режимах окремий, тож сторінка перезавантажується.
 // preventDefault: у полі введення комбінація не надрукує символ і не зарахується як помилка.
 // ?boost з адреси прибираємо, інакше він знову ввімкне режим
