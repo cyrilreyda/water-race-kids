@@ -1,8 +1,8 @@
 // Офлайн-режим гри. Онлайн сторінки завжди беруться з мережі (і оновлюють збережену копію),
 // без інтернету — зі збереженої копії. Параметри адреси (?boost, ?robot=…) на копію не впливають.
 // Після зміни списку FILES збільшити номер у CACHE, щоб браузери забрали нову копію.
-const CACHE = 'balloon-race-kids-v1';
-const FILES = ['./', './index.html', './guide/', './guide/index.html', './fonts/fonts.css', './logo.svg',
+const CACHE = 'water-race-kids-v1';
+const FILES = ['./', './index.html', './rivers.js', './rivers/', './rivers/index.html', './guide/', './guide/index.html', './fonts/fonts.css', './logo.svg',
                './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 const TIMEOUT = 5000;   // повільна мережа в класі — після 5 с беремо збережену копію
 
@@ -12,7 +12,7 @@ self.addEventListener('install', e=>{
 // Видаляємо лише старі версії цієї гри: усі ігри сайту cyrilreyda.github.io ділять одне сховище кешів.
 self.addEventListener('activate', e=>{
   e.waitUntil(caches.keys()
-    .then(keys=>Promise.all(keys.filter(k=>k.startsWith('balloon-race-kids-') && k !== CACHE).map(k=>caches.delete(k))))
+    .then(keys=>Promise.all(keys.filter(k=>k.startsWith('water-race-kids-') && k !== CACHE).map(k=>caches.delete(k))))
     .then(()=>self.clients.claim()));
 });
 self.addEventListener('fetch', e=>{

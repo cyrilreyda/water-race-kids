@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Повітряні перегони · Інформатика в 131-й</title>
+<title>Перегони на воді · Інформатика в 131-й</title>
 <link href="fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
 <link rel="manifest" href="manifest.webmanifest">   <!-- гру можна встановити як програму -->
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="theme-color" content="#16A3A0">
 <script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
+<script src="rivers.js"></script>   <!-- довідки про траси й схеми -->
 <style>
   :root{
     --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
@@ -18,7 +19,7 @@
     --radius-s:10px; --radius-m:16px; --radius-l:26px;
     /* Пальці: мізинець, безіменний, середній, вказівний (дзеркально для обох рук) */
     --f-pinky:#FFE0EC; --f-ring:#FFF1C9; --f-middle:#D9F3F2; --f-index:#E6E2FF; --f-thumb:#ECEBF3;
-    --bal-w:66px; --sky-h:290px; --ground-h:88px;
+    --boat-w:100px; --sky-h:290px; --ground-h:84px; --water-h:112px;
   }
   *{box-sizing:border-box;}
   body{margin:0; background:var(--bg); color:var(--ink); font-family:'Nunito Sans',sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased;}
@@ -47,20 +48,23 @@
 
   main{padding:16px 0 40px;}
 
-  /* ---------- Небо ---------- */
-  /* Сцена: небо регіону, хмари й земля з краєвидом. Під час польоту камера летить за кулею учня:
-     земля й хмари прокручуються, робот — попереду чи позаду, висоту куль задає --h (0 — земля) */
+  /* ---------- Річка ---------- */
+  /* Сцена: небо, хмари, далекий берег із краєвидом траси й вода з двома доріжками. Під час запливу камера пливе
+     за човном учня: вода й берег прокручуються (берег далеко — повільніше), робот — попереду чи позаду */
   .track{margin-top:8px; position:relative; height:var(--sky-h); border-radius:var(--radius-l); overflow:hidden;
     background:linear-gradient(180deg, var(--sky1, #8FD3FF), var(--sky2, #E3F5FF));}
   .track.compact .track-name{display:none;}
   .track-name{position:absolute; top:10px; left:12px; z-index:4; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; line-height:1; padding:5px 11px 4px; border-radius:999px; background:rgba(255,255,255,.9); color:var(--ink);}
-  .clouds{position:absolute; left:0; right:0; top:0; height:calc(100% - var(--ground-h)); background-repeat:repeat-x; background-size:600px auto; background-position:0 6px; opacity:.9;}
-  .ground{position:absolute; left:0; right:0; bottom:0; height:var(--ground-h); z-index:1; background-repeat:repeat-x; background-size:auto 100%; background-position:0 bottom;}
-  /* Стартова щогла: стоїть на землі в точці старту й відпливає ліворуч разом із краєвидом */
-  .mast{position:absolute; bottom:calc(var(--ground-h) * .12); width:4px; height:calc(var(--ground-h) * .9); margin-left:-2px; z-index:1; background:#6E6C8A; border-radius:2px;}
-  .mast::after{content:""; position:absolute; left:4px; top:0; width:26px; height:17px; background:repeating-conic-gradient(#1B1B3A 0 25%, #fff 0 50%) 0 0/8.5px 8.5px; border:1px solid #1B1B3A;}
+  .clouds{position:absolute; left:0; right:0; top:0; height:calc(100% - var(--ground-h) - var(--water-h)); background-repeat:repeat-x; background-size:600px auto; background-position:0 6px; opacity:.9;}
+  .ground{position:absolute; left:0; right:0; bottom:calc(var(--water-h) - 1px); height:var(--ground-h); z-index:1; background-repeat:repeat-x; background-size:auto 100%; background-position:0 bottom;}
+  /* Вода: хвилі поверх кольору траси; хвилі пливуть разом із камерою й за течією */
+  .water{position:absolute; left:0; right:0; bottom:0; height:var(--water-h); z-index:1; background-repeat:repeat-x, no-repeat; background-size:160px 100%, 100% 100%;}
+  /* Стартовий буй: стоїть у воді між доріжками й відпливає ліворуч разом із водою */
+  .mast{position:absolute; bottom:calc(var(--water-h) * .32); width:3px; height:calc(var(--water-h) * .55); margin-left:-1.5px; z-index:1; background:#6E6C8A; border-radius:2px;}
+  .mast::before{content:""; position:absolute; left:-7px; bottom:-6px; width:17px; height:11px; border-radius:50% 50% 45% 45%; background:#E8453C; box-shadow:inset 0 -3px 0 #fff;}
+  .mast::after{content:""; position:absolute; left:3px; top:0; width:22px; height:14px; background:repeating-conic-gradient(#1B1B3A 0 25%, #fff 0 50%) 0 0/7px 7px; border:1px solid #1B1B3A;}
 
-  /* Ефекти регіонів: сонце, дощ Львова, листя Карпат */
+  /* Ефекти трас: сонце, дощ над Тисою, листя Карпат */
   .fx{position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:3;}
   .sun{position:absolute; top:12px; right:70px; width:40px; height:40px; border-radius:50%; background:#FFC93C; box-shadow:0 0 0 8px rgba(255,201,60,.3), 0 0 0 16px rgba(255,201,60,.15);}
   .flake{position:absolute; top:-8px; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 2px rgba(80,120,160,.5); animation:snow linear infinite;}
@@ -69,23 +73,32 @@
   @keyframes rain{to{transform:translate(-14px, 330px);}}
   .leaf{position:absolute; top:-10px; width:9px; height:6px; border-radius:6px 0; background:#E8A33D; animation:snow linear infinite;}
 
-  /* Повітряні кулі: учня — більша, робота — трохи менша. Ліворуч — --x, висота над землею — --h */
-  .balloon{--bw:var(--bal-w); position:absolute; z-index:2; width:var(--bw); left:var(--x, 30%); margin-left:calc(var(--bw) / -2);
-    bottom:calc(var(--ground-h) * .1 + var(--h, .5) * (var(--sky-h) - var(--ground-h) * .1 - var(--bw) * 1.4 - 8px));}
-  .balloon.bot{--bw:calc(var(--bal-w) * .74); z-index:1;}
-  .balloon.far{opacity:.55;}   /* робот далеко за краєм екрана — притиснутий до краю */
-  .balloon svg{position:relative; display:block; width:100%; height:auto; overflow:visible;}
-  .balloon .tag{position:absolute; top:calc(100% + 2px); left:50%; transform:translateX(-50%); white-space:nowrap;
+  /* Човни: учня — ближче й більший, робота — далі й трохи менший. Ліворуч — --x */
+  .boat{--bw:var(--boat-w); position:absolute; z-index:3; width:var(--bw); left:var(--x, 25%); margin-left:calc(var(--bw) / -2); bottom:calc(var(--water-h) * .02);}
+  .boat.bot{--bw:calc(var(--boat-w) * .72); z-index:2; bottom:calc(var(--water-h) * .46);}
+  .boat.far{opacity:.55;}   /* робот далеко за краєм екрана — притиснутий до краю */
+  .boat svg{position:relative; display:block; width:100%; height:auto; overflow:visible; transform-origin:50% 85%; animation:bob 2.6s ease-in-out infinite;}
+  .boat.bot svg{animation-duration:2.2s; animation-delay:-.9s;}
+  @keyframes bob{50%{transform:translateY(1.5px) rotate(-1.5deg);}}
+  .boat .tag{position:absolute; bottom:calc(100% + 2px); left:50%; transform:translateX(-50%); white-space:nowrap;
     font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11.5px; line-height:1; padding:3px 8px 2px; border-radius:999px; background:rgba(255,255,255,.92); color:var(--ink);}
-  .balloon .flame{opacity:0; transition:opacity .25s ease; transform-box:fill-box; transform-origin:50% 100%;}
-  .balloon.burn .flame{opacity:1; animation:flicker .18s ease-in-out infinite alternate;}
-  @keyframes flicker{to{transform:scaleY(1.25) scaleX(.85);}}
-  .balloon.bump svg{animation:bump .3s ease;}
+  /* Ім'я учня не налазить на човен робота на сусідній доріжці: на широкому екрані воно ліворуч від човна,
+     на вузькому — під ним, а доріжки трохи вище */
+  @media (min-width:601px){ .boat.me .tag{left:auto; right:calc(100% - 4px); bottom:30%; transform:none;} }
+  @media (max-width:600px){
+    .boat{bottom:calc(var(--water-h) * .17);}
+    .boat.bot{bottom:calc(var(--water-h) * .52);}
+    .boat.me .tag{bottom:auto; top:calc(100% - 3px);}
+  }
+  /* Слід за кормою й весла рухаються, лише коли човен пливе */
+  .boat .wake{opacity:0; transition:opacity .5s ease;}
+  .boat.moving .wake{opacity:1;}
+  .boat .oar{transform-box:view-box;}
+  .boat.moving .oar{animation:row .8s ease-in-out infinite;}
+  @keyframes row{50%{transform:rotate(var(--row, 18deg));}}
+  .boat.bump svg{animation:bump .3s ease;}
   @keyframes bump{25%{transform:translate(-3px,1px) rotate(-4deg);} 75%{transform:translate(2px,0) rotate(3deg);}}
-  /* Куля низько: кошик злегка розгойдується, щоб було видно, що треба друкувати */
-  .balloon.low svg{animation:sway 1s ease-in-out infinite;}
-  @keyframes sway{50%{transform:rotate(4deg);}}
-  /* Таймер польоту: скільки секунд до фінішу */
+  /* Таймер запливу: скільки секунд до фінішу */
   .timer{position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:4; display:flex; align-items:center; gap:8px;
     font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; line-height:1; padding:5px 12px 4px; border-radius:999px; background:rgba(255,255,255,.92); color:var(--ink);}
   .timer .tbar{width:90px; height:8px; border-radius:999px; background:var(--line); overflow:hidden;}
@@ -118,20 +131,20 @@
   .seg button:disabled{opacity:.45; cursor:not-allowed;}
 
   .cards{display:grid; gap:10px;}
-  .cards.tracks{grid-template-columns:repeat(5, 1fr);}
-  .cards.balloons{grid-template-columns:repeat(6, 1fr);}
-  @media (max-width:700px){ .cards.tracks .label{font-size:13px; padding:6px 2px 2px;} .cards.tracks{grid-template-columns:repeat(3, 1fr);} .cards.balloons{grid-template-columns:repeat(3, 1fr);} }
+  .cards.tracks{grid-template-columns:repeat(4, 1fr);}
+  .cards.boats{grid-template-columns:repeat(6, 1fr);}
+  @media (max-width:700px){ .cards.tracks .label{font-size:13px; padding:6px 2px 2px;} .cards.tracks{grid-template-columns:repeat(2, 1fr);} .cards.boats{grid-template-columns:repeat(3, 1fr);} }
   .pick{border:1.5px solid var(--line); background:var(--surface); border-radius:var(--radius-m); padding:0; cursor:pointer; overflow:hidden; text-align:center; transition:all .15s ease;}
   .pick:hover:not(:disabled){border-color:var(--teal); transform:translateY(-2px);}
   .pick.on{border-color:var(--teal); box-shadow:0 0 0 2px var(--teal);}
   .pick:disabled{cursor:not-allowed;}
   .pick .label{display:block; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14.5px; line-height:1.2; padding:7px 6px 2px;}
   .pick small{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); line-height:1.25; padding:0 6px 8px;}
-  /* Мініатюра регіону: небо й земля з краєвидом */
-  .track-prev{height:56px; background:var(--g) left bottom/auto 72% repeat-x, linear-gradient(180deg, var(--s1), var(--s2));}
+  /* Мініатюра траси: небо, берег із краєвидом і вода */
+  .track-prev{height:56px; background:var(--g) left 0 bottom 13px/auto 64% repeat-x, linear-gradient(var(--w1), var(--w2)) left bottom/100% 14px no-repeat, linear-gradient(180deg, var(--s1), var(--s2));}
   .pick:disabled .track-prev{filter:grayscale(1) opacity(.45);}
   .pick .bal-prev{display:block; padding:10px 8px 0;}
-  .pick .bal-prev svg{height:84px; width:auto; margin:0 auto; display:block; overflow:visible;}
+  .pick .bal-prev svg{height:58px; width:auto; margin:0 auto; display:block; overflow:visible;}
   .swatches{display:flex; gap:10px; margin-top:12px;}
   .swatch{width:34px; height:34px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px var(--line); cursor:pointer; padding:0;}
   .swatch.on{box-shadow:0 0 0 3px var(--ink);}
@@ -144,7 +157,7 @@
   .btn-ghost{background:var(--bg); color:var(--ink); border:1.5px solid var(--line);}
   .btn-ghost:hover{border-color:var(--teal);}
 
-  /* Політ */
+  /* Заплив */
   .race-panel{position:relative; cursor:text;}
   .stats{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
   .stat{background:var(--bg); border-radius:var(--radius-s); padding:4px 12px; font-size:13px; color:var(--ink-soft);}
@@ -168,7 +181,7 @@
   .hint{display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin:12px 0 10px; font-size:14px; color:var(--ink-soft); min-height:28px;}
   .hint .kbd{font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; color:var(--ink); background:var(--surface); border:1.5px solid var(--line); border-bottom-width:3px; border-radius:7px; padding:0 9px; min-width:30px; text-align:center;}
   .hint .dot{width:12px; height:12px; border-radius:50%; display:inline-block; vertical-align:-1px; margin-right:4px; border:1.5px solid rgba(27,27,58,.25);}
-  /* Підказки лежать поверх клавіатури й не змінюють висоту панелі — інакше небо стискалося б посеред польоту */
+  /* Підказки лежать поверх клавіатури й не змінюють висоту панелі — інакше річка стискалася б посеред запливу */
   .kb-wrap{position:relative;}
   .tip{position:absolute; left:50%; top:-6px; z-index:3; transform:translateX(-50%); width:max-content; max-width:calc(100% - 16px); text-align:center;
     background:#FFF4D6; color:#8A6200; border:2px solid var(--yellow); border-radius:var(--radius-s); padding:8px 16px; font-size:17px; font-weight:800; box-shadow:0 6px 18px rgba(27,27,58,.15);}
@@ -220,7 +233,7 @@
   .kb-row.r2{padding-left:calc(var(--k) * .35);}
   .kb-row.rn{padding-right:var(--k);}   /* ряд цифр зсунутий ліворуч, як на справжній клавіатурі */
   @media (max-width:600px){
-    :root{--bal-w:48px; --sky-h:230px; --ground-h:64px;}
+    :root{--boat-w:70px; --sky-h:232px; --ground-h:62px; --water-h:90px;}
     .text-box{font-size:22px;}
     .panel{padding:16px 14px;}
     /* на телефоні Shift вужчі (1.15 клавіші), тож нижній ряд — 12.3 клавіші, і самі клавіші більші */
@@ -275,7 +288,7 @@
   .sticker.no .st-ico span{filter:grayscale(1); opacity:.3;}
   .sticker.new .st-ico{animation:st-beat .6s ease 2;}
   @keyframes st-beat{50%{transform:scale(1.4);}}
-  /* Наліпка, яку збирають за кілька польотів: знизу вгору заповнюється кольором на стільки, скільки вже зібрано */
+  /* Наліпка, яку збирають за кілька запливів: знизу вгору заповнюється кольором на стільки, скільки вже зібрано */
   .st-part{position:absolute; left:0; right:0; bottom:0; height:var(--fill); overflow:hidden; background:#FFE08A; border-top:2px solid #E0A800;}
   .st-part span{position:absolute; left:0; right:0; bottom:0; height:48px; display:flex; align-items:center; justify-content:center;}
   .sticker.no .st-ico .st-part, .sticker.no .st-ico .st-part span{filter:none; opacity:1;}
@@ -295,7 +308,7 @@
   .win-close{position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:16px; font-weight:700; line-height:1; cursor:pointer;}
   .win-close:hover{border-color:var(--coral); color:var(--coral);}
   #overlay .win-actions{margin:0 0 14px;}
-  /* Невисокий екран: усе компактніше, нові кулі й регіони — в один ряд */
+  /* Невисокий екран: усе компактніше, нові плавзасоби й траси — в один ряд */
   @media (max-height:780px){
     #overlay .win{padding-top:16px;}
     #overlay .win .big{font-size:40px; margin-bottom:2px;}
@@ -308,7 +321,7 @@
     #overlay .unlock-item{flex-direction:column; gap:4px; text-align:center; font-size:13px;}
     #overlay .unlock-item .thumb{width:84px;}
     #overlay .unlock-item .thumb.badge{width:44px;}
-    #overlay .unlock-item b{display:block; line-height:1.2;}   /* «Змагання» чи «Куля» — підписом, назва — окремим рядком */
+    #overlay .unlock-item b{display:block; line-height:1.2;}   /* «Змагання» чи «Траса» — підписом, назва — окремим рядком */
     #overlay .unlock-item .track-prev{height:36px;}
   }
 
@@ -321,7 +334,7 @@
 
   /* ---------- Профіль ---------- */
   .player-btn{display:inline-flex; align-items:center; gap:6px;}
-  .pb-bal{display:inline-block; width:17px; flex-shrink:0;}
+  .pb-bal{display:inline-block; width:24px; flex-shrink:0;}
   .pb-bal svg{display:block; width:100%; height:auto; overflow:visible;}
   .win.prof{position:relative; text-align:left; max-width:480px;}
   /* Хрестик угорі праворуч закриває вікно */
@@ -337,7 +350,7 @@
   .players{display:flex; flex-direction:column; gap:6px; margin-top:8px;}
   .pl-row{display:flex; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:var(--radius-m); padding:6px 8px 6px 10px; background:var(--surface);}
   .pl-row.me{border-color:var(--teal); background:#F2FBF7;}
-  .pl-row .pb-bal{width:26px; margin:0 9px;}
+  .pl-row .pb-bal{width:34px; margin:0 5px;}
   .pl-name{flex:1; min-width:0; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .pl-name small{display:block; font-family:'Nunito Sans',sans-serif; font-weight:600; font-size:12px; color:var(--ink-soft);}
   .pl-name small .nico{width:13px; height:13px;}
@@ -392,12 +405,14 @@
   .unlock-item{display:flex; align-items:center; gap:12px; text-align:left; font-size:14px;}
   .unlock-item .thumb{width:92px; flex-shrink:0;}
   .unlock-item .thumb svg{width:100%; display:block; overflow:visible;}
-  .unlock-item .thumb.bal svg{height:64px; width:auto; margin:0 auto;}
+  .unlock-item .thumb.bal svg{height:46px; width:auto; margin:0 auto;}
   /* бейджик змагання — невеликий значок, а не на всю ширину мініатюри */
   .unlock-item .thumb.badge{width:44px;}
   .unlock-item .thumb .badge-ico{display:block; width:44px; height:44px;}
   .unlock-item .track-prev{margin:0; height:44px;}
   .unlock-item small{color:var(--ink-soft);}
+  .unlock-item .fact{display:block; margin-top:2px;}
+  .unlock-item .thumb.pennant svg{display:block; width:44px; height:32px; margin:0 auto;}
 
   .share-date{color:var(--ink-soft); font-size:13.5px;}
   .share-sec h3{font-size:15px; color:var(--ink-soft); margin:18px 0 8px;}
@@ -423,17 +438,26 @@
   /* ---------- Бейджики ---------- */
   .badge-ico{display:inline-block; width:1.4em; height:1.4em; vertical-align:-.3em; flex-shrink:0;}
   .badge-ico svg{display:block; width:100%; height:100%;}
-  .balloon .tag{display:flex; align-items:center; gap:3px;}
-  .balloon .tag .badge-ico{width:16px; height:16px;}
+  .boat .tag{display:flex; align-items:center; gap:3px;}
+  .boat .tag .badge-ico{width:16px; height:16px;}
   .bal-extras{display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; margin-top:12px;}
   .bal-extras .swatches{margin-top:0;}
-  .start-over{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .extra{display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px;}
+  .extra-label{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; color:var(--ink-soft);}
+  /* Прапорці на щоглі: частина відкривається наліпками */
+  .flags{display:flex; flex-wrap:wrap; gap:8px;}
+  .flag-pick{width:46px; height:36px; border-radius:var(--radius-s); border:1.5px solid var(--line); background:var(--surface); padding:4px 6px; cursor:pointer;}
+  .flag-pick svg{display:block; width:100%; height:100%;}
+  .flag-pick:hover{border-color:var(--teal);}
+  .flag-pick.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--ink);}
+  .flag-pick.locked{opacity:.35; filter:grayscale(1); cursor:help;}
+  .start-over{position:absolute; inset:0; z-index:4; display:flex; align-items:center; justify-content:center; pointer-events:none;}
   .start-over .btn{pointer-events:auto; box-shadow:0 4px 0 var(--teal-dark), 0 10px 24px rgba(27,27,58,.3);}
   .race-info{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--ink-soft); margin:-4px 0 10px;}
   .race-info:empty{display:none;}
   .exit-btn{position:absolute; top:12px; right:12px; z-index:2; width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:16px; font-weight:700; line-height:1; cursor:pointer;}
   .exit-btn:hover{border-color:var(--coral); color:var(--coral);}
-  /* Під час польоту статистику не показуємо: числа, що змінюються, відволікають; вона є на екрані результату */
+  /* Під час запливу статистику не показуємо: числа, що змінюються, відволікають; вона є на екрані результату */
   .race-panel .stats{display:none;}
   .hint-row{display:flex; align-items:center; gap:10px; margin:12px 0 10px;}
   .hint-row .hint{flex:1; margin:0;}
@@ -482,7 +506,7 @@
   .cp-progress .bar i{background:linear-gradient(90deg, var(--teal), #3DDC84);}
   .stage-table td:first-child{width:28px; font-family:'Baloo 2',sans-serif; font-weight:800; color:var(--ink-soft);}
   .stage-table tr.next td{background:#F2FBF7;}
-  .next-bal{display:inline-block; width:24px; vertical-align:middle;}
+  .next-bal{display:inline-block; width:32px; vertical-align:middle;}
   .next-bal svg{display:block; width:100%; height:auto; overflow:visible;}
   .stage-table tr.todo td{color:var(--ink-soft);}
   .cp-foot{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; font-size:14px; font-weight:700;}
@@ -492,7 +516,7 @@
   .key-ico{width:1.3em; height:1.3em; vertical-align:-.3em; display:inline-block;}
   .comp-bals{display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:12.5px; font-weight:700; margin-left:8px;}
   .comp-bal{display:flex; align-items:center; gap:4px;}
-  .comp-bal svg{width:20px; height:auto; display:block; overflow:visible;}
+  .comp-bal svg{width:28px; height:auto; display:block; overflow:visible;}
   .comp-bal.locked svg{filter:brightness(0) opacity(.18);}
   .comp-bal.locked{color:var(--ink-soft);}
   .comp-head .badge-ico{width:38px; height:38px;}
@@ -535,14 +559,35 @@
   .res-table tfoot td{font-weight:800; border-top:2px solid var(--line); border-bottom:none;}
   .res-table .won{color:#16803C; font-weight:800;}
   .table-scroll{overflow-x:auto;}
+
+  /* ---------- Довідка про трасу ---------- */
+  .pick-wrap{position:relative; display:flex;}
+  .pick-wrap .pick{flex:1;}
+  .info-btn{position:absolute; top:5px; right:5px; z-index:1; width:26px; height:26px; border-radius:50%; border:1.5px solid var(--line); background:rgba(255,255,255,.94);
+    color:var(--teal-dark); font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px; line-height:1; cursor:pointer; padding:0;}
+  .info-btn:hover{border-color:var(--teal); background:#E3F7F6;}
+  #riverOverlay{z-index:25;}
+  .river-win{position:relative; text-align:left; max-width:660px;}
+  .river-title{font-size:26px; padding-right:40px; margin-bottom:10px;}
+  .river-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:14px; align-items:start;}
+  @media (max-width:600px){ .river-grid{grid-template-columns:1fr;} }
+  .river-map{display:block; width:100%; height:auto; border-radius:var(--radius-m); border:1.5px solid var(--line);}
+  .river-map .cities text{font-family:'Nunito Sans',sans-serif; font-weight:700; fill:var(--ink); stroke:#fff; paint-order:stroke;}
+  .river-map .sea-name{font-family:'Nunito Sans',sans-serif; font-size:10px; font-style:italic; fill:#1E5E8C;}
+  .river-facts{margin:0; font-size:14px; line-height:1.4;}
+  .river-facts dt{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:12.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;}
+  .river-facts dd{margin:0 0 8px;}
+  .river-text{margin:12px 0 8px; font-size:15.5px;}
+  .river-fun{margin:0; background:#FFF4D6; border-radius:var(--radius-m); padding:8px 12px; font-size:14.5px;}
+  .fun-label{font-family:'Baloo 2',sans-serif; font-weight:700; color:#8A6200;}
 </style>
 </head>
 <body>
 
 <div class="topbar"><div class="topbar-inner">
   <a class="back-link" href="https://cyrilreyda.github.io/">← Всі ігри</a>
-  <span class="game-title">Повітряні перегони</span>
-  <div class="neuron-counter" title="Нейрончики — твій досвід. За них відкриваються регіони й кулі.">
+  <span class="game-title">Перегони на воді</span>
+  <div class="neuron-counter" title="Нейрончики — твій досвід. За них відкриваються траси й плавзасоби.">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
       <line x1="14.1" y1="15.6" x2="16.6" y2="20" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.6" cy="20" r="1.2" fill="#FFC93C"/>
@@ -554,6 +599,7 @@
     </svg>
     <span id="neuronCount">0</span>
   </div>
+  <a class="top-btn" href="rivers/index.html" title="Річки й море України: довідка до всіх трас">🌊<span class="long"> Річки</span></a>
   <a class="top-btn" href="guide/index.html" title="Інструкція: змагання й посилання на результати">❓<span class="long"> Як грати</span></a>
   <button class="top-btn player-btn" id="playerBtn" title="Профіль гравця"><span class="pb-bal" id="playerBal"></span><span class="long" id="playerName">Гравець</span></button>
   <button class="top-btn fs-btn" id="fsBtn" type="button" title="На весь екран (F11)" aria-label="На весь екран (F11)" hidden>
@@ -563,15 +609,16 @@
 </div></div>
 
 <main class="container">
-  <section class="track" id="track" aria-label="Небо регіону">
-    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🎈 На старт!</button></div>
+  <section class="track" id="track" aria-label="Річка траси">
+    <div class="start-over" id="startBar"><button class="btn btn-primary btn-big" id="startBtn">🚣 На старт!</button></div>
     <span class="track-name" id="trackName"></span>
     <div class="timer" id="timer" hidden><span id="timerNum">1:00</span><span class="tbar"><i></i></span>🏁</div>
     <div class="clouds" id="clouds"></div>
     <div class="ground" id="ground"></div>
+    <div class="water" id="water"></div>
     <div class="mast" id="mast"></div>
-    <div class="balloon bot" id="balBot"></div>
-    <div class="balloon me" id="balMe"></div>
+    <div class="boat bot" id="boatBot"></div>
+    <div class="boat me" id="boatMe"></div>
     <div class="fx" id="fx"></div>
     <div class="countdown" id="countdown" hidden>
       <div class="lights"><i></i><i></i><i></i></div>
@@ -579,19 +626,22 @@
     </div>
   </section>
 
-  <!-- Гараж: вільний політ і змагання -->
+  <!-- Причал: вільний заплив і змагання -->
   <section class="panel" id="setup">
     <div class="tabs" role="tablist">
-      <button type="button" class="tab on" data-tab="paneFree">🎈 Вільний політ</button>
+      <button type="button" class="tab on" data-tab="paneFree">🚣 Вільний заплив</button>
       <button type="button" class="tab tab-comp" data-tab="paneComp" id="compTab" hidden></button>
       <button type="button" class="tab" data-tab="paneComps">🏆 Змагання <span class="tab-count" id="compCount"></span></button>
     </div>
 
     <div class="pane" id="paneFree">
       <div class="setup-grid">
-        <div class="opt full"><h3>Регіон</h3><div class="cards tracks" id="trackCards"></div></div>
-        <div class="opt full"><h3>Куля</h3><div class="cards balloons" id="balCards"></div>
-          <div class="bal-extras"><div class="swatches" id="swatches"></div></div></div>
+        <div class="opt full"><h3>Траса</h3><div class="cards tracks" id="trackCards"></div></div>
+        <div class="opt full"><h3>Плавзасіб</h3><div class="cards boats" id="boatCards"></div>
+          <div class="bal-extras">
+            <div class="extra"><span class="extra-label">Колір</span><div class="swatches" id="swatches"></div></div>
+            <div class="extra"><span class="extra-label">Прапорець</span><div class="flags" id="flagPicks"></div></div>
+          </div></div>
         <div class="opt full"><h3>Мова</h3><div class="seg" id="segLang"></div></div>
       </div>
     </div>
@@ -608,7 +658,7 @@
     </div>
   </section>
 
-  <!-- Політ -->
+  <!-- Заплив -->
   <section class="panel race-panel" id="race" hidden>
     <div class="race-info" id="raceInfo"></div>
     <div class="stats">
@@ -621,7 +671,7 @@
     <div class="hint-row">
       <div class="hint" id="hint"></div>
       <button class="exit-btn pause-btn" id="pauseBtn" type="button" title="Пауза" aria-label="Пауза">⏸</button>
-      <button class="exit-btn" id="exitBtn" type="button" title="Вийти з польоту (Esc)" aria-label="Вийти з польоту">✕</button>
+      <button class="exit-btn" id="exitBtn" type="button" title="Вийти із запливу (Esc)" aria-label="Вийти із запливу">✕</button>
     </div>
     <div class="kb-wrap">
       <div class="tip" id="tip" hidden></div>
@@ -637,7 +687,7 @@
   <section class="panel" id="shareView" hidden></section>
 </main>
 
-<!-- Результат польоту -->
+<!-- Результат запливу -->
 <div class="overlay" id="overlay">
   <div class="win" role="dialog" aria-labelledby="winTitle">
     <button class="win-close" id="winClose" type="button" title="Закрити (Esc)" aria-label="Закрити">✕</button>
@@ -646,7 +696,7 @@
     <p class="sub" id="wSub"></p>
     <div class="stars" id="wStars"></div>
     <div class="win-actions">
-      <button class="btn btn-primary" id="againBtn">🎈 Ще політ</button>
+      <button class="btn btn-primary" id="againBtn">🚣 Ще заплив</button>
       <button class="btn btn-ghost" id="toSetupBtn">🏁 До перегонів</button>
     </div>
     <div class="result">
@@ -667,7 +717,7 @@
   <div class="win" role="dialog" aria-labelledby="nameTitle">
     <div class="big">👋</div>
     <h2 id="nameTitle">Привіт! Як тебе звати?</h2>
-    <p class="sub">Під цим ім'ям на цьому пристрої збережуться твої нейрончики, кулі, рекорди й медалі.</p>
+    <p class="sub">Під цим ім'ям на цьому пристрої збережуться твої нейрончики, човни, рекорди й медалі.</p>
     <div class="known" id="knownPlayers"></div>
     <form class="field" id="nameForm">
       <input id="nameInput" maxlength="24" placeholder="Ім'я та прізвище" autocomplete="off">
@@ -701,6 +751,14 @@
   </div>
 </div>
 
+<!-- Довідка про трасу -->
+<div class="overlay" id="riverOverlay">
+  <div class="win river-win" role="dialog" aria-label="Довідка про трасу">
+    <button class="win-close" id="riverClose" type="button" title="Закрити (Esc)" aria-label="Закрити">✕</button>
+    <div id="riverBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -708,7 +766,7 @@
 // повні речення, без фори й пригальмовування робота, усі змагання відкриті. Прогрес — окремий.
 // У встановленій грі (PWA) адреси не видно, тож вчитель перемикає режим ще й Ctrl+Alt+B — це запам'ятовується на пристрої.
 // ?boost в адресі діє лише на цей запуск: один комп'ютер може відкривати гру різним класам різними посиланнями
-const BOOST_KEY = 'balloon-race-kids-boost';
+const BOOST_KEY = 'water-race-kids-boost';
 let boostSaved = false;
 try{ boostSaved = localStorage.getItem(BOOST_KEY) === 'on'; }catch(e){}
 const BOOST = boostSaved || new URLSearchParams(location.search).has('boost');
@@ -774,9 +832,9 @@ const TEXTS = {
 };
 
 const COLORS = ['#FF6B4A','#16A3A0','#2D9CDB','#FF5D9E','#6C5CE7','#FFC93C'];
-// У кожної кулі свій колір: початковий — тут, обраний гравцем — у settings.colors
-const BALLOON_COLORS = { classic:'#FF6B4A', patch:'#2D9CDB', stars:'#6C5CE7', vyshyvanka:'#FF6B4A', sunflower:'#16A3A0', firebird:'#FF5D9E' };
-const balloonColor = (model, st = settings) => st?.colors?.[model] || BALLOON_COLORS[model] || COLORS[0];
+// У кожного плавзасобу свій колір: початковий — тут, обраний гравцем — у settings.colors
+const BOAT_COLORS = { rowboat:'#FF6B4A', kayak:'#FFC93C', sailboat:'#2D9CDB', motorboat:'#FF5D9E', chaika:'#FF6B4A', yacht:'#16A3A0' };
+const boatColor = (model, st = settings) => st?.colors?.[model] || BOAT_COLORS[model] || COLORS[0];
 
 // Розкладки: [нижній символ, верхній (Shift)]; номер колонки визначає палець
 const LAYOUTS = {
@@ -808,86 +866,124 @@ const FLAGS = {
 const LANGS = [ {id:'uk', html:`${FLAGS.uk} Українська`}, {id:'en', html:`${FLAGS.en} English`} ];
 const LANG_FLAG = FLAGS;
 
-/* ================= Повітряні кулі ================= */
-// Усі кулі — у viewBox 60×84: оболонка зверху, знизу кошик із пілотом
+/* ================= Плавзасоби ================= */
+// Усі човни — у viewBox 100×70, ніс праворуч; ватерлінія — на y≈61.
 // Пілот: у гравця — шолом, у комп'ютера — голова робота
 function pilot(kind, x, y, s=1){
   return kind === 'bot'
     ? `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-5" y="-5" width="10" height="9" rx="2.2" fill="#C9D3E6"/><circle cx="-2" cy="-.5" r="1.4" fill="#16A3A0"/><circle cx="2" cy="-.5" r="1.4" fill="#16A3A0"/><rect x="-.6" y="-8" width="1.2" height="3" fill="#C9D3E6"/><circle cx="0" cy="-8.5" r="1.3" fill="#FF5D9E"/></g>`
     : `<g transform="translate(${x} ${y}) scale(${s})"><circle r="5" fill="#fff" stroke="#1B1B3A" stroke-width="1"/><path d="M-.5 -2.2 H4.6 A5 5 0 0 1 4.6 1.2 H-.5 Z" fill="#1B1B3A" opacity=".85"/><path d="M-4.5 -1.5 Q0 -4 3 -4.2" stroke="#FF5D9E" stroke-width="1.5" fill="none"/></g>`;
 }
-// Оболонка — «лінза» з півшириною w; смуги й візерунки — вкладені лінзи, тож clipPath не потрібен
-function lens(w, fill){
-  const m = Math.min(6, w * .23), mx = (w - m) * .35;
-  return `<path d="M30 2 C${30+w*.62} 2 ${30+w} 13 ${30+w} 29 C${30+w} 43 ${30+m+mx} 53 ${30+m} 59 H${30-m} C${30-m-mx} 53 ${30-w} 43 ${30-w} 29 C${30-w} 13 ${30-w*.62} 2 30 2 Z" fill="${fill}"/>`;
-}
 const star = (x, y, r, c='#fff') => `<path d="${Array.from({length:10}, (_, i)=>{ const a = Math.PI/5*i - Math.PI/2, q = i%2 ? r*.45 : r;
   return `${i ? 'L' : 'M'}${(x + q*Math.cos(a)).toFixed(1)} ${(y + q*Math.sin(a)).toFixed(1)}`; }).join(' ')} Z" fill="${c}"/>`;
-const rhomb = (x, y, r, c) => `<path d="M${x} ${y-r} L${x+r} ${y} L${x} ${y+r} L${x-r} ${y} Z" fill="${c}"/>`;
-// Блиск, мотузки, пальник (вогонь видно, коли учень друкує — клас .burn), кошик із пілотом
-const SHINE = `<path d="M15 14 Q19 7 26 5.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".45"/>`;
-const basket = kind => `<path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width=".9"/>
-  <path d="M24.3 57 H35.7 L35 60 H25 Z" fill="#1B1B3A" opacity=".35"/>
-  <path class="flame" d="M30 50 Q34 55.5 30 59.5 Q26 55.5 30 50 Z" fill="#FFB020"/>
-  ${pilot(kind, 30, 64.5, .9)}
-  <rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/>
-  <path d="M21 72.5 H39 M21 76.5 H39" stroke="#8E5F28" stroke-width="1"/><path d="M25.5 69 V81 M30 69 V81 M34.5 69 V81" stroke="#8E5F28" stroke-width=".8" opacity=".6"/>
-  <rect x="20" y="67" width="20" height="2.6" rx="1.3" fill="#8E5F28"/>`;
 
-const BALLOONS = {
-  classic:{ name:'Смугаста', draw:(c,k)=>lens(27, c) + lens(18, '#fff') + lens(9, c) + SHINE + basket(k) },
-
-  patch:{ name:'Клаптикова', draw:(c,k)=>lens(27, c) +
-    [[11,17,9,9,'#FFC93C'],[33,8,9,8,'#fff'],[38,27,11,10,'#FFC93C'],[17,33,9,9,'#fff'],[26,20,8,7,'#3DDC84'],[29,40,8,8,'#fff'],[9,26,5,6,'#FF5D9E']]
-      .map(([x,y,w,h,f])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="${f}" stroke="#1B1B3A" stroke-width=".6" stroke-dasharray="1.6 1.2" opacity=".95"/>`).join('') +
-    SHINE + basket(k) },
-
-  stars:{ name:'Зоряна', draw:(c,k)=>lens(27, c) + lens(13, 'rgba(255,255,255,.18)') +
-    star(30, 15, 4.5) + star(16, 27, 3.5) + star(44, 27, 3.5) + star(30, 34, 5, '#FFE07A') + star(21, 44, 3) + star(39, 44, 3) + star(30, 50, 2.2) +
-    SHINE + basket(k) },
-
-  vyshyvanka:{ name:'Вишиванка', draw:(c,k)=>lens(27, '#FFFDF5') +
-    `<path d="M5.5 23 H54.5 M5.5 35 H54.5" stroke="#1B1B3A" stroke-width="1"/>` +
-    [8.5,15.5,22.5,29.5,36.5,43.5,51.5].map((x, i)=>rhomb(x, 29, 4.2, i%2 ? '#1B1B3A' : c) + rhomb(x, 29, 1.6, '#fff')).join('') +
-    [16,23,30,37,44].map((x, i)=>rhomb(x, 46, 2.8, i%2 ? c : '#1B1B3A')).join('') +
-    [20,30,40].map(x=>rhomb(x, 13, 2.4, c)).join('') +
-    SHINE + basket(k) },
-
-  sunflower:{ name:'Соняшник', draw:(c,k)=>lens(27, c) +
-    Array.from({length:14}, (_, i)=>`<ellipse cx="30" cy="16" rx="3.6" ry="8" fill="${i%2 ? '#FFC93C' : '#FFB020'}" transform="rotate(${i*360/14} 30 29)"/>`).join('') +
-    `<circle cx="30" cy="29" r="8.5" fill="#7A4A22"/>` +
-    Array.from({length:9}, (_, i)=>`<circle cx="${30 + (i%3-1)*4}" cy="${29 + (Math.floor(i/3)-1)*4}" r="1" fill="#C98E45"/>`).join('') +
-    SHINE + basket(k) },
-
-  firebird:{ name:'Жар-птиця', draw:(c,k)=>lens(27, c) +
-    `<path d="M10 46 Q4 30 14 18 Q14 30 21 35 Q17 22 26 9 Q28 24 33 30 Q35 18 44 12 Q42 26 48 30 Q52 24 51 17 Q56 34 46 50 Z" fill="#FF6B4A" opacity=".9"/>
-     <path d="M16 48 Q12 36 19 28 Q20 37 26 40 Q25 30 31 21 Q32 32 37 36 Q40 28 46 25 Q49 38 42 52 Z" fill="#FFC93C"/>
-     <circle cx="30" cy="44" r="4" fill="#16A3A0" stroke="#fff" stroke-width="1.4"/><circle cx="30" cy="44" r="1.6" fill="#1B1B3A"/>` +
-    SHINE + basket(k) }
+// Прапорці на щоглі. sticker — наліпка, яка відкриває прапорець; без неї — відкритий одразу
+const PENNANTS = {
+  ua:     { name:'Україна' },
+  sun:    { name:'Сонечко' },
+  wave:   { name:'Хвиля' },
+  fish:   { name:'Рибка',     sticker:'clean' },
+  star:   { name:'Зірка',     sticker:'record' },
+  anchor: { name:'Якір',      sticker:'races' },
+  cossack:{ name:'Козацький', sticker:'medal' }
 };
-function balloonSVG(model, color, kind){
-  return `<svg viewBox="0 0 60 84" aria-hidden="true">${BALLOONS[model].draw(color, kind)}</svg>`;
+const PENNANT_ORDER = Object.keys(PENNANTS);
+const pennantOpen = id => PENNANTS[id] && (!PENNANTS[id].sticker || !!profile.stickers[PENNANTS[id].sticker]);
+// Полотнище 14×9 із хвилею; спершу все полотнище, потім візерунок із тією самою хвилею — щілин немає
+const PENNANT_SHAPE = 'M0 0 Q3.5 -1.2 7 0 T14 0 V9 Q10.5 7.8 7 9 T0 9 Z';
+function pennantBody(id){
+  const bg = c => `<path d="${PENNANT_SHAPE}" fill="${c}"/>`;
+  switch(id){
+    case 'sun':     return bg('#2D9CDB') + `<circle cx="7" cy="4.5" r="2.6" fill="#FFC93C"/>`;
+    case 'wave':    return bg('#fff') + `<path d="M1.5 5.2 Q3.2 3.2 5 5.2 T8.5 5.2 T12.5 5.2" stroke="#2D9CDB" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    case 'fish':    return bg('#16A3A0') + `<path d="M3 4.5 Q6.5 1.6 10 4.5 Q6.5 7.4 3 4.5 Z M10 4.5 L12.6 2.6 V6.4 Z" fill="#FFC93C"/><circle cx="5" cy="4.1" r=".6" fill="#1B1B3A"/>`;
+    case 'star':    return bg('#E8453C') + star(7, 4.7, 3.2, '#FFC93C');
+    case 'anchor':  return bg('#fff') + `<g stroke="#2F6FD1" stroke-width=".9" fill="none" stroke-linecap="round"><circle cx="7" cy="2" r=".9"/><path d="M7 2.9 V7.6 M5 4 H9 M4 5.8 Q4.5 7.7 7 7.7 Q9.5 7.7 10 5.8"/></g>`;
+    case 'cossack': return bg('#B5174B') + `<path d="M6.2 1.8 H7.8 V3.8 H9.8 V5.2 H7.8 V7.4 H6.2 V5.2 H4.2 V3.8 H6.2 Z" fill="#FFC93C"/>`;
+    case 'robot':   return bg('#C9D3E6') + `<circle cx="5" cy="4.5" r="1.3" fill="#16A3A0"/><circle cx="9" cy="4.5" r="1.3" fill="#16A3A0"/>`;
+    default:        return bg('#FFD23F') + `<path d="M0 0 Q3.5 -1.2 7 0 T14 0 V4.5 Q10.5 3.3 7 4.5 T0 4.5 Z" fill="#2F6FD1"/>`;   // Україна
+  }
+}
+// Прапорець біля верхівки древка (x, y): майорить назад, ліворуч від древка
+const pennant = (id, x, y) => `<g transform="translate(${x - 14} ${y})">${pennantBody(id)}</g>`;
+const pennantSVG = id => `<svg viewBox="-1 -2 16 13" aria-hidden="true">${pennantBody(id)}</svg>`;
+
+// Слід за кормою (видно, коли човен пливе — клас .moving) і брижі біля борту
+const wake = x => `<g class="wake" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="1.5" opacity=".85">
+  <path d="M${x} 59.5 Q${x-6} 57.5 ${x-13} 59"/><path d="M${x} 62 Q${x-8} 60.5 ${x-17} 63"/><path d="M${x-4} 64.5 Q${x-10} 63.5 ${x-16} 65.5"/></g>`;
+const ripple = (x1, x2) => `<path d="M${x1} 61.5 ${Array.from({length:Math.round((x2 - x1) / 10)}, ()=>'q2.5 -1.5 5 0 t5 0').join(' ')}" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" fill="none"/>`;
+const pole = (x, y1, y2, w = 1.2) => `<path d="M${x} ${y1} V${y2}" stroke="#6E5536" stroke-width="${w}"/>`;
+// Весло обертається навколо кочета (x, y); --row — розмах
+const oar = (x, y, len, row) => `<g class="oar" style="transform-origin:${x}px ${y}px; --row:${row}deg"><path d="M${x} ${y} L${x - len*.75} ${y + len*.66}" stroke="#8B5A2B" stroke-width="1.7" stroke-linecap="round"/>
+  <ellipse cx="${x - len*.8}" cy="${y + len*.7}" rx="4" ry="1.5" transform="rotate(-42 ${x - len*.8} ${y + len*.7})" fill="#C08A45"/></g>`;
+
+// draw(колір, хто, прапорець)
+const BOATS = {
+  rowboat:{ name:'Човен', draw:(c,k,f)=>wake(15) + pole(17, 50, 31) + pennant(f, 17, 31) + pilot(k, 50, 44, 1.15) +
+    `<path d="M12 49 H88 Q86 59 76 62 H25 Q15 59 12 49 Z" fill="${c}"/><path d="M12 49 H88 L87.4 51.8 H12.6 Z" fill="#fff" opacity=".85"/>
+     <path d="M20 56.5 H80" stroke="#1B1B3A" stroke-opacity=".18"/>` + oar(46, 50, 20, -24) + ripple(14, 86) },
+
+  kayak:{ name:'Байдарка', draw:(c,k,f)=>wake(8) + pole(14, 54, 36, 1) + pennant(f, 14, 36) + pilot(k, 52, 46, 1.1) +
+    `<path d="M4 55 Q50 47 98 54 Q52 63 4 55 Z" fill="${c}"/><path d="M9 54.4 Q50 49.6 93 53.8" stroke="#fff" stroke-width="1.3" fill="none" opacity=".8"/>
+     <ellipse cx="52" cy="51.6" rx="7" ry="1.8" fill="#1B1B3A" opacity=".5"/>
+     <g class="oar" style="transform-origin:52px 46px; --row:28deg"><path d="M36 32 L68 60" stroke="#514F72" stroke-width="1.6" stroke-linecap="round"/>
+       <ellipse cx="35" cy="31" rx="1.8" ry="4.4" transform="rotate(-48 35 31)" fill="#FFC93C"/><ellipse cx="69" cy="61" rx="1.8" ry="4.4" transform="rotate(-48 69 61)" fill="#FFC93C"/></g>` +
+    ripple(8, 92) },
+
+  sailboat:{ name:'Вітрильник', draw:(c,k,f)=>wake(19) + pole(54, 49, 4, 1.6) + pennant(f, 54, 4) +
+    `<path d="M52.5 8 L52.5 40 L24 40 Z" fill="#fff" stroke="#C9CFDA" stroke-width=".8"/><path d="M52.5 32 L31.1 32 L24 40 L52.5 40 Z" fill="${c}"/>
+     <path d="M55.5 9 L55.5 44 L80 44 Z" fill="#fff" stroke="#C9CFDA" stroke-width=".8"/><path d="M55.5 30 L70.2 30 L80 44 L55.5 44 Z" fill="${c}"/>
+     <path d="M25 40 H53" stroke="#6E5536" stroke-width="1.6" stroke-linecap="round"/>` + pilot(k, 36, 45, 1.05) +
+    `<path d="M10 48 H92 L82 61 H22 Z" fill="${c}"/><path d="M10 48 H92 L90.2 50.6 H11.8 Z" fill="#fff" opacity=".85"/>` + ripple(16, 86) },
+
+  motorboat:{ name:'Катер', draw:(c,k,f)=>wake(4) + pole(14, 47, 29, 1.1) + pennant(f, 14, 29) + pilot(k, 60, 42, 1.05) +
+    `<path d="M47 48 L54 35 H66 L72 48 Z" fill="#BFE6FA" opacity=".75"/><path d="M47 48 L54 35 H66 L72 48" fill="none" stroke="#514F72" stroke-width="1.4" stroke-linejoin="round"/>
+     <path d="M8 47 H86 Q97 48 95 52 L86 61 H15 Z" fill="${c}"/><path d="M8 47 H86 Q96 47.5 95.6 50 H8.4 Z" fill="#fff" opacity=".85"/>
+     <path d="M15 55 H82" stroke="#1B1B3A" stroke-opacity=".2"/>
+     <rect x="2" y="44" width="8" height="13" rx="2" fill="#514F72"/><rect x="3.5" y="41.5" width="5" height="3" rx="1" fill="#1B1B3A"/>` + ripple(14, 90) },
+
+  chaika:{ name:'Чайка', draw:(c,k,f)=>wake(10) + pole(50, 50, 4, 1.8) + pennant(f, 50, 4) +
+    `<path d="M36 11 H64 V39 H36 Z" fill="#F4E9D4"/><path d="M36 11 H64 V18 H36 Z M36 25 H64 V32 H36 Z" fill="${c}"/>
+     <path d="M34 11 H66 M34 39 H66" stroke="#6E5536" stroke-width="1.4" stroke-linecap="round"/>` + pilot(k, 18, 43, 1.05) +
+    `<path d="M3 44 Q8 50 14 50 H86 Q92 50 97 44 L90 60 Q50 64 10 60 Z" fill="#9C6B3C"/>
+     <path d="M11 51.6 H89" stroke="#D9B26A" stroke-width="3" stroke-dasharray="2 1"/>` +   // в'язки очерету вздовж бортів
+    [32, 50, 68].map(x=>oar(x, 52, 17, -20)).join('') + ripple(8, 92) },
+
+  yacht:{ name:'Яхта', draw:(c,k,f)=>wake(16) + pole(58, 47, 2, 1.6) + pennant(f, 58, 2) +
+    `<path d="M56.5 5 L56.5 41 L22 41 Z" fill="#fff" stroke="#C9CFDA" stroke-width=".8"/><path d="M56.5 33 L29.7 33 L22 41 L56.5 41 Z" fill="${c}"/>
+     <path d="M23 41 H57" stroke="#6E5536" stroke-width="1.6" stroke-linecap="round"/>
+     <path d="M59.5 6 L59.5 45 L90 45 Z" fill="${c}" opacity=".85"/>` + pilot(k, 20, 43, 1) +
+    `<path d="M30 47 V42 H50 L55 47 Z" fill="#F4F1E8" stroke="#C9CFDA" stroke-width=".8"/><rect x="35" y="43.5" width="4" height="2.4" rx="1" fill="#8FC0EA"/><rect x="42" y="43.5" width="4" height="2.4" rx="1" fill="#8FC0EA"/>
+     <path d="M6 47 H90 Q97 47 95 51 L85 61 H17 Z" fill="#fff" stroke="#C9CFDA" stroke-width=".8"/><path d="M8 51 H94.6 L93.4 53.6 H10 Z" fill="${c}"/>` + ripple(14, 90) }
+};
+function boatSVG(model, color, kind, flag = kind === 'bot' ? 'robot' : settings.flag){
+  return `<svg viewBox="0 0 100 70" aria-hidden="true">${BOATS[model].draw(color, kind, flag)}</svg>`;
 }
 
 
-/* ================= Регіони ================= */
+/* ================= Траси ================= */
 const svgURL = s => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
 const tile = (w, h, body) => svgURL(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`);
-// Земля регіону: краєвид із пам'ятками в смузі 0–64 і передній план 64–80, куди сідає куля
+// Берег траси: краєвид із пам'ятками в смузі 0–64 і край берега 64–80, від якого починається вода
 const groundTile = (w, body, fg) => tile(w, 80, body + `<rect y="63" width="${w}" height="17" fill="${fg}"/><rect y="63" width="${w}" height="2" fill="#000" opacity=".08"/>`);
+// Хвилі на воді: світлі гребінці в кількох рядах на всю висоту води
+const WAVES = svgURL(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100" preserveAspectRatio="none">` +
+  [[8,18,.45],[60,34,.35],[110,20,.4],[30,52,.35],[96,64,.3],[140,46,.3],[12,80,.3],[70,88,.25],[124,84,.3]].map(([x,y,o])=>
+    `<path d="M${x} ${y} q5 -3 10 0 t10 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="${o}"/>`).join('') +
+  `<rect width="160" height="2.5" fill="#fff" opacity=".4"/></svg>`);
 
-// Хмари: спільні для всіх регіонів, пливуть за вітром
+// Хмари: спільні для всіх трас, пливуть за вітром
 const cloud = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})" fill="#fff"><ellipse cx="0" cy="0" rx="22" ry="8"/><ellipse cx="-9" cy="-5" rx="10" ry="8"/><ellipse cx="7" cy="-7" rx="12" ry="10"/></g>`;
 const CLOUDS = tile(600, 120, cloud(60, 26, 1.1) + cloud(230, 62, .8) + cloud(390, 20, 1.3) + cloud(520, 78, .7) + cloud(160, 104, .55) + cloud(470, 110, .5));
 
 const chestnutTree = (x, y, r) => `<rect x="${x-1.5}" y="${y}" width="3" height="${64-y}" fill="#8B5A2B"/>
     <circle cx="${x}" cy="${y-r*.4}" r="${r}" fill="#4E9F57"/><circle cx="${x-r*.5}" cy="${y-r*.1}" r="${r*.7}" fill="#5FAF63"/>
     ${[[-.4,-.8],[.35,-.6],[-.1,-.2],[.55,0]].map(([dx,dy])=>`<ellipse cx="${x+dx*r}" cy="${y+dy*r-r*.3}" rx="1" ry="2" fill="#FFF8E7"/>`).join('')}`;
-const goldDome = (x, y, r) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*1.05}" fill="#F2C230"/><path d="M${x-r*.45} ${y-r*.8} L${x} ${y-r*2} L${x+r*.45} ${y-r*.8} Z" fill="#F2C230"/>
+const goldDome = (x, y, r, c='#F2C230') => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*1.05}" fill="${c}"/><path d="M${x-r*.45} ${y-r*.8} L${x} ${y-r*2} L${x+r*.45} ${y-r*.8} Z" fill="${c}"/>
     <path d="M${x} ${y-r*2} V${y-r*2.8} M${x-1.2} ${y-r*2.5} H${x+1.2}" stroke="#C99A1E" stroke-width=".8"/>`;
 const roundTree = (x, y, r, c='#4E9F57') => `<rect x="${x-1.5}" y="${y}" width="3" height="${64-y}" fill="#8B5A2B"/><circle cx="${x}" cy="${y-r*.3}" r="${r}" fill="${c}"/>`;
 const poplar = (x, h) => `<rect x="${x-1}" y="60" width="2" height="4" fill="#8B5A2B"/><ellipse cx="${x}" cy="${61-h/2}" rx="${h*.15}" ry="${h/2}" fill="#3E8E4F"/>`;
-const cypress = (x, h) => `<ellipse cx="${x}" cy="${64-h/2}" rx="${h*.12}" ry="${h/2}" fill="#2F6B45"/>`;
+const willow = (x, c='#7FB069') => `<rect x="${x-1.5}" y="44" width="3" height="20" fill="#7A5A3A"/><path d="M${x-14} 58 Q${x-12} 34 ${x} 30 Q${x+12} 34 ${x+14} 58 Q${x+8} 50 ${x} 52 Q${x-8} 50 ${x-14} 58 Z" fill="${c}"/>`;
 function pine(x, h, c){
   let s = `<rect x="${x-2}" y="58" width="4" height="6" fill="#8B5A2B"/>`;
   for(let i=0;i<3;i++){
@@ -896,232 +992,166 @@ function pine(x, h, c){
   }
   return s;
 }
-const flag = (x, y) => `<path d="M${x} 64 V${y}" stroke="#6E6C8A" stroke-width="1.4"/><rect x="${x+1}" y="${y}" width="11" height="4" fill="#2F6FD1"/><rect x="${x+1}" y="${y+4}" width="11" height="4" fill="#FFD23F"/>`;
 // Будинок із вікнами: [x, ширина, висота, колір]
 const house = ([x, w, h, c], roof) => { const y = 64 - h;
   let b = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>` + (roof ? `<path d="M${x-1} ${y} L${x+w/2} ${y-w*.45} L${x+w+1} ${y} Z" fill="${roof}"/>` : '');
   for(let wy = y+5; wy < 58; wy += 9) for(let wx = x+3; wx < x+w-4; wx += 6.5) b += `<rect x="${wx}" y="${wy}" width="3" height="4.5" fill="#FFF6C7"/>`;
   return b; };
+const tower = (x, y, w, roof='#C8553D', wall='#E6DCC4') => `<rect x="${x}" y="${y}" width="${w}" height="${64-y}" fill="${wall}"/><path d="M${x-2} ${y} L${x+w/2} ${y-w*1.1} L${x+w+2} ${y} Z" fill="${roof}"/>
+  <rect x="${x+w/2-1.5}" y="${y+6}" width="3" height="5" rx="1.5" fill="#6E6C8A"/>`;
 
-// Київщина: Лаврська дзвіниця, Михайлівський собор, Батьківщина-Мати, синьо-жовтий прапор, Арка Свободи, каштани
-function kyivGround(){
-  const B = [[118,22,30,'#F2A97E'],[142,18,40,'#8E9AC8'],[222,24,34,'#7FC8C0'],[248,20,26,'#F5C76B'],[270,26,42,'#B79CE0'],[438,24,30,'#F2A97E']];
-  let s = '<path d="M0 52 Q60 38 130 48 T260 46 T400 44 T480 52 V64 H0 Z" fill="#A9D9A2"/>';   // київські пагорби
-  for(const [x,w,h,c] of B) s += house([x, w, h, c]);
-  // Велика Лаврська дзвіниця
+// Дніпро в Києві: кручі, Лавра, Батьківщина-Мати, Андріївська церква, великий синьо-жовтий прапор
+function dniproGround(){
+  let s = '<path d="M0 34 Q50 22 110 30 Q170 40 230 30 T360 32 T480 40 V64 H0 Z" fill="#8FCB86"/>';
+  s += '<path d="M0 52 Q120 44 240 52 T480 50 V64 H0 Z" fill="#76B96F"/>';
+  // Велика Лаврська дзвіниця й Успенський собор
   s += `<rect x="28" y="36" width="30" height="28" fill="#F4F1E8"/><rect x="31" y="25" width="24" height="11" fill="#E3F0E7"/><rect x="34" y="16" width="18" height="9" fill="#F4F1E8"/>
     <rect x="28" y="35" width="30" height="2" fill="#5FA77A"/><rect x="31" y="24" width="24" height="2" fill="#5FA77A"/><rect x="34" y="15" width="18" height="2" fill="#5FA77A"/>
     ${[33,41,49].map(x=>`<path d="M${x} 50 V44 Q${x+2} 41 ${x+4} 44 V50 Z" fill="#9CC5AC"/>`).join('')}
     ${[35,43].map(x=>`<path d="M${x} 33 V29 Q${x+2.5} 26.5 ${x+5} 29 V33 Z" fill="#9CC5AC"/>`).join('')}
     ${goldDome(43, 11, 5)}`;
-  // Михайлівський Золотоверхий
-  s += `<rect x="68" y="42" width="40" height="22" fill="#7FB3E0"/><rect x="80" y="34" width="16" height="8" fill="#8FC0EA"/>
-    ${[73,81,95,103].map(x=>`<rect x="${x}" y="47" width="3" height="7" rx="1.5" fill="#fff"/>`).join('')}
-    ${goldDome(88, 29, 5)}${goldDome(73, 38, 3.2)}${goldDome(103, 38, 3.2)}`;
+  s += `<rect x="66" y="40" width="36" height="24" fill="#F4F1E8"/><rect x="77" y="33" width="14" height="7" fill="#F4F1E8"/>
+    ${[71,81,91].map(x=>`<rect x="${x}" y="46" width="3" height="7" rx="1.5" fill="#B8C4D0"/>`).join('')}
+    ${goldDome(84, 28, 5)}${goldDome(70, 36, 3)}${goldDome(98, 36, 3)}`;
   // Батьківщина-Мати
   s += `<path d="M184 64 L189 42 H203 L208 64 Z" fill="#B8BFCC"/>
     <path d="M192 42 L194.5 22 Q196 19 197.5 22 L200 42 Z" fill="#C9CFDA"/><circle cx="196" cy="18" r="2.4" fill="#C9CFDA"/>
     <path d="M197.5 23 L203 9" stroke="#C9CFDA" stroke-width="2.2" stroke-linecap="round"/><path d="M202.5 10 L206 1" stroke="#EEF1F5" stroke-width="1.6" stroke-linecap="round"/>
     <ellipse cx="190.5" cy="28" rx="3.6" ry="4.4" fill="#AEB6C4"/>`;
-  // Великий синьо-жовтий прапор на щоглі
-  s += `<rect x="321.8" y="5" width="2.4" height="59" fill="#6E6C8A"/><circle cx="323" cy="4" r="2" fill="#F2C230"/>
-    <path d="M324 6 Q331 3 338 6 T352 6 V26 Q345 29 338 26 Q331 23 324 26 Z" fill="#FFD23F"/>
-    <path d="M324 6 Q331 3 338 6 T352 6 V16 Q345 19 338 16 Q331 13 324 16 Z" fill="#2F6FD1"/>`;   // спершу весь прапор жовтим, зверху синя половина з тією самою хвилею — без проміжку
-  // Арка Свободи
-  s += `<path d="M362 64 A24 24 0 0 1 410 64" fill="none" stroke="#9AA3B5" stroke-width="4"/>
-    <path d="M378 64 V54 H386 V64 M381 54 V50 H383 V54" fill="#B8BFCC"/>`;
-  s += chestnutTree(16, 50, 9) + chestnutTree(214, 52, 7) + chestnutTree(300, 50, 9) + chestnutTree(424, 52, 7) + chestnutTree(464, 50, 8);
-  return groundTile(480, s, '#7CC47F');
+  // Андріївська церква: біла з бірюзовими банями
+  s += `<rect x="288" y="40" width="34" height="24" fill="#F4F1E8"/><rect x="298" y="29" width="14" height="11" fill="#F4F1E8"/>
+    <ellipse cx="305" cy="26" rx="6.5" ry="6.5" fill="#3FA7A0"/><path d="M305 19.5 V13 M303 15.5 H307" stroke="#C99A1E" stroke-width="1"/>
+    ${[290,320].map(x=>`<rect x="${x-3}" y="33" width="6" height="7" fill="#F4F1E8"/><ellipse cx="${x}" cy="32" rx="3" ry="3.2" fill="#3FA7A0"/>`).join('')}
+    ${[294,303,312].map(x=>`<rect x="${x}" y="47" width="3.5" height="8" rx="1.7" fill="#B8C4D0"/>`).join('')}`;
+  // Великий синьо-жовтий прапор на щоглі: спершу весь жовтий, зверху синя половина з тією самою хвилею — без проміжку
+  s += `<rect x="361.8" y="5" width="2.4" height="59" fill="#6E6C8A"/><circle cx="363" cy="4" r="2" fill="#F2C230"/>
+    <path d="M364 6 Q371 3 378 6 T392 6 V26 Q385 29 378 26 Q371 23 364 26 Z" fill="#FFD23F"/>
+    <path d="M364 6 Q371 3 378 6 T392 6 V16 Q385 19 378 16 Q371 13 364 16 Z" fill="#2F6FD1"/>`;
+  s += [[118,22,28,'#F2A97E'],[140,18,36,'#8E9AC8'],[226,24,30,'#7FC8C0'],[252,20,24,'#F5C76B'],[424,24,28,'#B79CE0']].map(b=>house(b)).join('');
+  s += chestnutTree(16, 52, 8) + chestnutTree(214, 52, 7) + chestnutTree(340, 52, 8) + chestnutTree(410, 54, 6) + chestnutTree(462, 52, 8);
+  return groundTile(480, s, '#E9D9A6');
 }
-// Полтавщина: Біла альтанка, хати під стріхою, вітряк, соняшники, тополі
-const hut = x => `<rect x="${x}" y="48" width="34" height="16" fill="#FFFDF5"/><path d="M${x-5} 49 L${x+7} 36 H${x+27} L${x+39} 49 Z" fill="#D9A441"/>
-  <path d="M${x-5} 49 L${x+7} 36 H${x+27} L${x+39} 49" fill="none" stroke="#B5832B" stroke-width="1"/>
-  <rect x="${x+5}" y="52" width="7" height="6" fill="#7FB3E0" stroke="#2F6FD1" stroke-width=".8"/><rect x="${x+21}" y="52" width="7" height="12" fill="#8B5A2B"/>`;
-function poltavaGround(){
-  let s = '<path d="M0 50 Q80 34 170 46 T340 42 T480 50 V64 H0 Z" fill="#B5DE8E"/><path d="M0 57 Q120 50 240 56 T480 56 V64 H0 Z" fill="#9CCF6E"/>';
-  // Біла альтанка на кручі
-  s += `<rect x="42" y="40" width="36" height="4" fill="#fff"/>${[0,1,2,3,4,5,6].map(i=>`<rect x="${45+i*5}" y="26" width="2" height="14" fill="#fff"/>`).join('')}
-    <rect x="43" y="24" width="34" height="3" fill="#fff"/><path d="M45 24 Q60 9 75 24 Z" fill="#fff"/><path d="M60 12 V7" stroke="#C9CFDA" stroke-width="1.2"/>`;
-  s += hut(100) + hut(392);
-  // вітряк
-  s += `<path d="M193 64 L196 36 H206 L209 64 Z" fill="#9C6B3C"/><path d="M194 37 L201 28 L208 37 Z" fill="#6E4A27"/><rect x="198" y="52" width="6" height="12" fill="#5E3B22"/>
-    <g transform="rotate(22 201 34)" fill="#E9D3A8" stroke="#9C6B3C" stroke-width=".8"><rect x="199.5" y="9" width="3" height="50"/><rect x="176" y="32.5" width="50" height="3"/></g><circle cx="201" cy="34" r="2" fill="#5E3B22"/>`;
-  // соняшники
-  for(let i = 0; i < 13; i++) for(let j = 0; j < 2; j++){
-    const x = 246 + i*10 + j*5, y = 49 + j*7;
-    s += `<path d="M${x} ${y} V64" stroke="#5FA14A" stroke-width="1.2"/><circle cx="${x}" cy="${y}" r="3.6" fill="#FFC93C"/><circle cx="${x}" cy="${y}" r="1.6" fill="#7A4A22"/>`;
-  }
-  s += poplar(160, 40) + poplar(172, 34) + poplar(448, 40) + poplar(462, 32) + roundTree(18, 50, 9);
-  return groundTile(480, s, '#8CCB6A');
+// Десна: соснові ліси, Чернігів (Спасо-Преображенський собор, П'ятницька церква), лелека, піщаний пляж
+function desnaGround(){
+  let s = '<path d="M0 48 Q120 40 240 46 T480 44 V64 H0 Z" fill="#9DD08A"/>';
+  s += [[10,30],[24,38],[40,28],[56,34],[72,26],[400,32],[416,26],[432,36],[450,28],[468,34]].map(([x,h])=>pine(x, h, '#2F7D4F')).join('');
+  s += `<rect x="150" y="38" width="44" height="26" fill="#FFFDF5"/><rect x="164" y="30" width="16" height="10" fill="#FFFDF5"/>
+    <ellipse cx="172" cy="28" rx="7" ry="6" fill="#4E7F6A"/><path d="M172 22 V15 M170 17.5 H174" stroke="#C99A1E" stroke-width="1"/>
+    ${[140,194].map(x=>`<rect x="${x}" y="26" width="10" height="38" fill="#FFFDF5"/><path d="M${x} 26 L${x+5} 8 L${x+10} 26 Z" fill="#4E7F6A"/>`).join('')}
+    ${[155,167,179].map(x=>`<rect x="${x}" y="46" width="4" height="8" rx="2" fill="#B8C4D0"/>`).join('')}`;
+  s += `<rect x="248" y="44" width="24" height="20" fill="#FFFDF5"/><path d="M246 44 L260 34 L274 44 Z" fill="#FFFDF5"/>
+    <ellipse cx="260" cy="31" rx="5" ry="5.5" fill="#F2C230"/><path d="M260 25.5 V20 M258 22 H262" stroke="#C99A1E" stroke-width="1"/>`;
+  s += [[312,'#FF6B4A'],[346,'#2D9CDB'],[374,'#FFC93C']].map(([x,c])=>`<path d="M${x} 64 V50" stroke="#6E6C8A" stroke-width="1"/><path d="M${x-9} 51 Q${x} 41 ${x+9} 51 Z" fill="${c}"/>`).join('');
+  // лелека на гнізді
+  s += `<path d="M100 64 V31" stroke="#8B5A2B" stroke-width="2"/><ellipse cx="100" cy="30" rx="7" ry="2.5" fill="#8B5A2B"/>
+    <ellipse cx="100" cy="25" rx="4.5" ry="3" fill="#fff"/><path d="M96 26 Q95 28 97 28.5" stroke="#1B1B3A" stroke-width="1.6" fill="none"/>
+    <path d="M103 24 V19" stroke="#fff" stroke-width="1.8"/><path d="M103.5 18.6 L109 20" stroke="#E8453C" stroke-width="1.3"/><circle cx="103.4" cy="18.6" r=".6" fill="#1B1B3A"/>`;
+  s += roundTree(120, 50, 9, '#5FAF63') + roundTree(222, 50, 8) + roundTree(290, 52, 7, '#5FAF63');
+  return groundTile(480, s, '#F2DCA0');
 }
-// Львівщина: Ратуша, Оперний театр, кам'яниці, Латинський собор, Високий замок
-function lvivGround(){
-  let s = '<path d="M370 64 Q420 28 476 64 Z" fill="#9BC78E"/>' + flag(424, 30);
-  s += [[0,20,32,'#F2C46B'],[20,18,28,'#E58F6F'],[38,22,34,'#9FC6E0'],[60,18,26,'#F4E3C1'],[78,20,30,'#B7D98F'],[98,22,28,'#E8A3B5'],
-        [196,20,30,'#F2C46B'],[300,18,28,'#E58F6F'],[340,22,32,'#9FC6E0']].map(b=>house(b, '#B5513A')).join('');
-  // Ратуша
-  s += `<rect x="128" y="42" width="62" height="22" fill="#E8DCC0"/>${[0,1,2,3,4,5,6].map(i=>`<rect x="${132+i*8}" y="47" width="4" height="7" fill="#9C8B6A"/>`).join('')}
-    <rect x="151" y="12" width="16" height="30" fill="#EFE5CF"/><rect x="149" y="10" width="20" height="3" fill="#C9B994"/>
-    <circle cx="159" cy="21" r="4.6" fill="#fff" stroke="#8A6A30" stroke-width="1"/><path d="M159 21 V18 M159 21 L161.4 22" stroke="#1B1B3A" stroke-width=".9"/>
-    <rect x="154" y="4" width="10" height="6" fill="#EFE5CF"/><path d="M153 4 Q159 -4 165 4 Z" fill="#6FA88A"/><circle cx="159" cy="1" r="1.3" fill="#F2C230"/>`;
-  // Оперний театр
-  s += `<rect x="226" y="40" width="68" height="24" fill="#F1E6CE"/>${[0,1,2,3,4,5].map(i=>`<rect x="${240+i*7.5}" y="44" width="2.4" height="16" fill="#D9C9A3"/>`).join('')}
-    <path d="M226 40 L260 30 L294 40 Z" fill="#E3D3AF"/><path d="M248 32 Q260 16 272 32 Z" fill="#6FA88A"/><circle cx="260" cy="16" r="2.4" fill="#F2C230"/>
-    <circle cx="231" cy="37" r="2" fill="#F2C230"/><circle cx="289" cy="37" r="2" fill="#F2C230"/>`;
-  // Латинський собор
-  s += `<rect x="322" y="20" width="12" height="44" fill="#D9CDB0"/><path d="M322 20 L328 2 L334 20 Z" fill="#6FA88A"/><path d="M325 38 V30 Q328 26 331 30 V38 Z" fill="#9C8B6A"/>`;
-  return groundTile(480, s, '#B9B3A8');
+// Південний Буг: гранітні скелі Бузького Гарду, степ, верби, козацький хрест
+const rock = (x, w, h, c='#A7A9AE') => `<path d="M${x} 64 L${x+w*.1} ${64-h*.7} Q${x+w*.3} ${64-h} ${x+w*.55} ${64-h*.95} L${x+w*.85} ${64-h*.6} L${x+w} 64 Z" fill="${c}"/>
+  <path d="M${x+w*.3} ${64-h*.85} L${x+w*.45} ${64-h*.4} M${x+w*.65} ${64-h*.8} L${x+w*.75} ${64-h*.3}" stroke="#7E8189" stroke-width="1" fill="none"/>`;
+function buhGround(){
+  let s = '<path d="M0 50 Q120 42 240 48 T480 46 V64 H0 Z" fill="#C9DB8E"/>';
+  s += rock(18, 72, 36) + rock(84, 40, 22, '#9A9CA2') + rock(196, 92, 44) + rock(282, 46, 26, '#B4B6BB') + rock(410, 62, 32, '#9A9CA2');
+  s += willow(146) + willow(172, '#6AA35B') + willow(352) + willow(378, '#6AA35B');
+  s += `<path d="M322 64 V42 M316 48 H328" stroke="#8E9096" stroke-width="3"/>`;
+  s += [[120,16],[240,8],[460,14]].map(([x,y])=>`<path d="M${x} ${y} q3 -3 6 0 q3 -3 6 0" fill="none" stroke="#514F72" stroke-width="1"/>`).join('');
+  return groundTile(480, s, '#B9B2A0');
 }
-// Поділля: Кам'янець-Подільська фортеця над каньйоном Смотрича
-const tower = (x, y, w, roof='#C8553D') => `<rect x="${x}" y="${y}" width="${w}" height="${64-y}" fill="#E6DCC4"/><path d="M${x-2} ${y} L${x+w/2} ${y-w*1.1} L${x+w+2} ${y} Z" fill="${roof}"/>
-  <rect x="${x+w/2-1.5}" y="${y+6}" width="3" height="5" rx="1.5" fill="#6E6C8A"/>`;
-function podilliaGround(){
-  let s = '<path d="M0 46 Q120 30 240 40 T480 38 V64 H0 Z" fill="#B8DA9A"/>';
-  s += '<path d="M0 64 V48 Q40 44 92 46 L118 50 Q140 60 170 60 L200 50 Q240 44 300 46 L480 48 V64 Z" fill="#CDB892"/>';
-  s += '<path d="M116 64 Q140 57 172 57 Q192 58 204 64 Z" fill="#6FB7E0"/>';
-  // міст і фортеця
-  s += `<path d="M168 50 Q186 38 204 50" fill="none" stroke="#B5A27A" stroke-width="3"/>`;
-  s += `<rect x="226" y="32" width="112" height="16" fill="#E6DCC4"/>${Array.from({length:14}, (_, i)=>`<rect x="${227+i*8}" y="28" width="5" height="4" fill="#E6DCC4"/>`).join('')}`;
-  s += tower(220, 26, 14) + tower(256, 18, 16) + tower(292, 22, 12, '#B5483A') + tower(330, 24, 14);
-  // містечко на лівому березі
-  s += [[20,16,22,'#F4E3C1'],[40,18,26,'#F2C46B'],[64,16,20,'#E8A3B5']].map(b=>house(b, '#B5513A')).join('');
-  s += `<rect x="90" y="36" width="14" height="12" fill="#fff"/><path d="M90 36 Q97 26 104 36 Z" fill="#6FA88A"/><path d="M97 28 V22 M95 24.5 H99" stroke="#C99A1E" stroke-width="1"/>`;
-  s += roundTree(380, 48, 8) + roundTree(410, 46, 10, '#5FAF63') + roundTree(450, 48, 8);
-  return groundTile(480, s, '#8CC774');
+// Дністер: стіни каньйону з лісом угорі й Хотинська фортеця на пагорбі
+function dniesterGround(){
+  let s = '<path d="M0 64 V28 Q40 22 80 26 L120 30 Q160 24 210 30 V64 Z" fill="#C58E62"/>';
+  s += '<path d="M0 30 Q40 22 80 27 L120 31 Q160 25 210 31 V36 Q150 30 110 37 Q60 30 0 36 Z" fill="#5E9A55"/>';
+  s += '<path d="M0 46 Q60 41 120 47 T210 45 M0 55 Q70 51 140 57 T210 55" stroke="#A8724C" stroke-width="1.5" fill="none"/>';
+  s += '<path d="M226 64 V52 Q330 42 444 52 V64 Z" fill="#9FBF7E"/>';
+  s += `<rect x="262" y="30" width="130" height="22" fill="#D1C2A4"/>${Array.from({length:16}, (_, i)=>`<rect x="${263+i*8}" y="26" width="5" height="4" fill="#D1C2A4"/>`).join('')}
+    <path d="M262 38 H392 M262 45 H392" stroke="#B8A584" stroke-width="1"/><path d="M262 34 H392" stroke="#C08A6A" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+  s += tower(250, 22, 16, '#8E5F3C', '#D1C2A4') + tower(300, 12, 18, '#8E5F3C', '#D1C2A4') + tower(352, 20, 14, '#8E5F3C', '#D1C2A4') + tower(390, 26, 14, '#8E5F3C', '#D1C2A4');
+  s += roundTree(452, 50, 9) + roundTree(472, 52, 7, '#5FAF63');
+  return groundTile(480, s, '#B8A88A');
 }
-// Карпати: Говерла, смереки, дерев'яна церква, колиба, вівці
-function carpathiansGround(){
+// Черемош: Карпати, смереки, гуцульська дерев'яна церква, колиба, дараба на березі
+function cheremoshGround(){
   let s = '<path d="M0 64 L40 30 L78 46 L130 12 L176 42 L222 24 L268 46 L320 18 L368 40 L420 22 L480 50 V64 Z" fill="#7FA88A"/>';
   s += '<path d="M130 12 L138 20 L133 19 L130 22 L127 19 L122 20 Z" fill="#fff"/><path d="M320 18 L327 25 L320 24 L313 25 Z" fill="#fff"/>';
   s += '<path d="M0 64 Q60 40 120 54 T240 50 T360 52 T480 56 V64 Z" fill="#4E8F5A"/>';
   s += [[14,30],[30,40],[52,26],[88,34],[104,26],[150,38],[166,28],[262,34],[280,40],[300,28],[396,36],[414,28],[460,38]].map(([x,h])=>pine(x, h, '#24704A')).join('');
-  // дерев'яна церква
   s += `<rect x="188" y="46" width="26" height="18" fill="#9C6B3C"/><path d="M184 47 L201 36 L218 47 Z" fill="#5E3B22"/><rect x="195" y="30" width="12" height="7" fill="#9C6B3C"/>
     <path d="M192 31 L201 22 L210 31 Z" fill="#5E3B22"/><path d="M201 22 V14 M198 17 H204" stroke="#C99A1E" stroke-width="1.2"/><rect x="198" y="54" width="6" height="10" fill="#5E3B22"/>`;
-  // колиба
   s += `<rect x="334" y="50" width="26" height="14" fill="#B07A44"/><path d="M330 51 L347 38 L364 51 Z" fill="#6E4A27"/><rect x="343" y="55" width="6" height="9" fill="#5E3B22"/>`;
-  // вівці
-  s += [[236,58],[246,60],[440,59]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="3.4" fill="#fff"/><circle cx="${x+5}" cy="${y-1}" r="1.8" fill="#514F72"/>`).join('');
-  return groundTile(480, s, '#6DB46F');
+  // дараба — пліт із колод
+  s += `${[0,1,2,3,4].map(i=>`<rect x="226" y="${57+i*1.4}" width="44" height="2.2" rx="1.1" fill="${i%2 ? '#A0703F' : '#B5834B'}"/>`).join('')}<path d="M262 57 L272 46" stroke="#6E4A27" stroke-width="1.4"/>`;
+  return groundTile(480, s, '#A9A79A');
 }
-// Харківщина: Держпром, Благовіщенський собор, Дзеркальний струмінь
-function kharkivGround(){
-  let s = '<path d="M0 54 Q120 44 240 52 T480 50 V64 H0 Z" fill="#B5DE8E"/>';
-  // Держпром: брили різної висоти з переходами між ними
-  const D = [[30,28,28],[64,24,40],[94,34,52],[134,24,40],[164,28,28]];
-  s += D.map(([x,w,h])=>{ const y = 64 - h;
-    let b = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#C7CCD6"/>`;
-    for(let wy = y+4; wy < 60; wy += 6) b += `<rect x="${x+2}" y="${wy}" width="${w-4}" height="2.6" fill="#8E98AD"/>`;
-    return b; }).join('');
-  s += `<rect x="58" y="34" width="6" height="4" fill="#C7CCD6"/><rect x="88" y="26" width="6" height="4" fill="#C7CCD6"/><rect x="128" y="26" width="6" height="4" fill="#C7CCD6"/><rect x="158" y="34" width="6" height="4" fill="#C7CCD6"/>`;
-  // Благовіщенський собор: смугаста дзвіниця
-  s += `<rect x="232" y="40" width="40" height="24" fill="#E8A3A0"/>${Array.from({length:4}, (_, i)=>`<rect x="232" y="${43+i*6}" width="40" height="2.4" fill="#fff"/>`).join('')}
-    ${goldDome(252, 34, 6)}${goldDome(238, 38, 3)}${goldDome(266, 38, 3)}
-    <rect x="280" y="14" width="12" height="50" fill="#E8A3A0"/>${Array.from({length:8}, (_, i)=>`<rect x="280" y="${17+i*6}" width="12" height="2.4" fill="#fff"/>`).join('')}${goldDome(286, 10, 4)}`;
-  // Дзеркальний струмінь
-  s += `<ellipse cx="390" cy="61" rx="34" ry="4" fill="#9FD4F0"/><rect x="372" y="34" width="36" height="3" fill="#fff"/>
-    ${[374,382,390,398,406].map(x=>`<rect x="${x-1}" y="37" width="2" height="22" fill="#fff"/>`).join('')}
-    <path d="M370 34 Q390 26 410 34 Z" fill="#fff"/><path d="M386 59 Q390 46 394 59" fill="none" stroke="#CDEBFA" stroke-width="1.5"/>`;
-  s += roundTree(206, 50, 9) + roundTree(322, 48, 10, '#5FAF63') + roundTree(344, 52, 7) + roundTree(452, 48, 10) + roundTree(470, 52, 7, '#5FAF63');
-  return groundTile(480, s, '#7CC47F');
+// Тиса: гори, руїни Хустського замку, виноградники, хати, знак «Географічний центр Європи»
+function tysaGround(){
+  let s = '<path d="M0 64 L50 30 L100 44 L160 18 L220 40 L280 26 L340 44 L400 22 L480 46 V64 Z" fill="#8DB38E"/>';
+  s += '<path d="M0 64 Q80 46 160 54 T320 52 T480 56 V64 Z" fill="#9CCB7A"/>';
+  s += '<path d="M146 64 Q176 30 222 38 Q246 44 262 64 Z" fill="#7FA86E"/>';
+  s += '<path d="M174 38 V26 H180 V20 H186 V30 H194 V24 H200 V36 H208 V30 H214 V42 Z" fill="#A79F92"/><path d="M186 30 V36 M200 36 V40" stroke="#8E8678" stroke-width="1"/>';
+  s += Array.from({length:5}, (_, r)=>Array.from({length:10}, (_, i)=>`<circle cx="${290+i*9+r*4}" cy="${44+r*4}" r="2.2" fill="${r%2 ? '#5F9E4F' : '#6DAA59'}"/>`).join('')).join('');
+  s += `${[296,322,350].map(x=>`<circle cx="${x}" cy="52" r="1.6" fill="#6C3A8E"/><circle cx="${x+2}" cy="53.5" r="1.6" fill="#6C3A8E"/>`).join('')}`;
+  s += [[30,20,16,'#F4E3C1'],[56,18,14,'#FFFDF5'],[96,20,16,'#F2C46B']].map(b=>house(b, '#C8553D')).join('');
+  s += `<rect x="446" y="34" width="6" height="26" fill="#E6DCC4"/><path d="M444 34 L449 25 L454 34 Z" fill="#C99A1E"/><rect x="440" y="60" width="18" height="4" fill="#B5A27A"/>`;
+  return groundTile(480, s, '#9FB98A');
 }
-// Одещина: Оперний театр, Потьомкінські сходи, маяк, вітрильник, портові крани, море
-function odesaGround(){
-  let s = '<rect y="42" width="480" height="22" fill="#5FB0E0"/>';
-  s += [[200,50],[330,47],[420,56],[60,58]].map(([x,y])=>`<path d="M${x} ${y} q4 -2 8 0 t8 0" fill="none" stroke="#CDEBFA" stroke-width="1.2"/>`).join('');
-  // Оперний театр
+// Дунай: Вилкове — хати на палях біля єриків, очерет, верби, пелікани
+const reeds = (x0, x1, h) => Array.from({length:Math.round((x1 - x0) / 4)}, (_, i)=>{ const x = x0 + i*4 + (i%2)*1.5, hh = h - (i*7%5)*2;
+  return `<path d="M${x} 64 V${64-hh}" stroke="#7FA35A" stroke-width="1.2"/>` + (i%3 === 0 ? `<rect x="${x-1.2}" y="${64-hh}" width="2.4" height="5" rx="1.2" fill="#8B5A2B"/>` : ''); }).join('');
+const pelican = (x, y) => `<ellipse cx="${x}" cy="${y}" rx="6" ry="3.5" fill="#fff"/><path d="M${x+4} ${y-2} Q${x+6} ${y-8} ${x+8} ${y-7}" stroke="#fff" stroke-width="2.4" fill="none"/>
+  <path d="M${x+8} ${y-7.5} L${x+14} ${y-5} L${x+8.5} ${y-5.6} Z" fill="#F2A33A"/><path d="M${x-4} ${y-1} Q${x} ${y-3} ${x+2} ${y}" stroke="#C9CFDA" stroke-width="1" fill="none"/>`;
+function dunaiGround(){
+  let s = '<path d="M0 52 Q120 46 240 50 T480 48 V64 H0 Z" fill="#A6CF8A"/>';
+  s += reeds(0, 96, 18) + reeds(300, 356, 16) + reeds(452, 480, 15);
+  s += [[108,'#7FB3E0'],[162,'#9FD3B0'],[222,'#F4E3C1']].map(([x,c])=>`<path d="M${x+3} 64 V55 M${x+25} 64 V55" stroke="#6E4A27" stroke-width="2"/>
+    <rect x="${x}" y="40" width="28" height="16" fill="${c}"/><path d="M${x-3} 41 L${x+14} 30 L${x+31} 41 Z" fill="#C8553D"/>
+    <rect x="${x+5}" y="45" width="6" height="6" fill="#fff" stroke="#2F6FD1" stroke-width=".8"/><rect x="${x+17}" y="45" width="6" height="11" fill="#8B5A2B"/>`).join('');
+  s += `<path d="M190 60 Q200 54 220 60" stroke="#8B5A2B" stroke-width="2" fill="none"/><path d="M193 58.5 V64 M216 58.5 V64" stroke="#8B5A2B" stroke-width="1.4"/>`;
+  s += willow(272) + willow(400, '#6AA35B') + pelican(330, 58) + pelican(372, 60);
+  s += [[60,12],[90,20],[420,10]].map(([x,y])=>`<path d="M${x} ${y} q5 -4 10 0 q5 -4 10 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`).join('');
+  return groundTile(480, s, '#8DB86B');
+}
+// Чорне море в Одесі: Оперний театр, Потьомкінські сходи, маяк на молу, портові крани, чайки
+function seaGround(){
+  let s = '<path d="M0 46 Q120 40 240 44 T480 42 V64 H0 Z" fill="#E8DCC4"/>';
   s += `<rect x="20" y="38" width="72" height="26" fill="#F2E2C2"/>${[0,1,2,3,4,5,6,7].map(i=>`<rect x="${26+i*8.4}" y="44" width="2.6" height="16" fill="#D9C39A"/>`).join('')}
     <path d="M40 38 Q56 18 72 38 Z" fill="#7FB7A8"/><circle cx="56" cy="20" r="2.2" fill="#F2C230"/><path d="M18 38 Q26 28 34 38 Z" fill="#7FB7A8"/><path d="M78 38 Q86 28 94 38 Z" fill="#7FB7A8"/>`;
-  // Потьомкінські сходи з Дюком
-  s += `<path d="M110 64 L126 40 H146 L162 64 Z" fill="#E8DCC4"/>${Array.from({length:6}, (_, i)=>`<path d="M${112+i*2.7} ${61-i*4} H${160-i*2.7}" stroke="#C9BBA0" stroke-width=".9"/>`).join('')}
+  s += `<path d="M110 64 L126 40 H146 L162 64 Z" fill="#E8DCC4" stroke="#C9BBA0" stroke-width=".6"/>${Array.from({length:6}, (_, i)=>`<path d="M${112+i*2.7} ${61-i*4} H${160-i*2.7}" stroke="#C9BBA0" stroke-width=".9"/>`).join('')}
     <rect x="134" y="33" width="4" height="7" fill="#7FA6A0"/><circle cx="136" cy="31" r="2" fill="#7FA6A0"/>`;
-  // вітрильник
-  s += `<path d="M196 56 H226 L220 62 H202 Z" fill="#fff"/><path d="M210 55 V30" stroke="#6E6C8A" stroke-width="1.2"/><path d="M211 31 L224 53 H211 Z" fill="#fff"/><path d="M209 34 L199 53 H209 Z" fill="#FF6B4A"/>`;
-  // маяк на молу
+  s += roundTree(184, 50, 9) + roundTree(204, 52, 7, '#5FAF63') + roundTree(232, 50, 8);
   s += `<rect x="262" y="58" width="64" height="6" fill="#BFB7A6"/><path d="M290 58 L293 24 H301 L304 58 Z" fill="#fff"/><rect x="291" y="17" width="12" height="7" fill="#E8453C"/>
     <path d="M290 17 L297 11 L304 17 Z" fill="#E8453C"/><rect x="294" y="19" width="6" height="3" fill="#FFE07A"/>`;
-  // портові крани
   s += [380, 430].map(x=>`<path d="M${x} 58 V20 M${x+8} 58 V20" stroke="#F29A3C" stroke-width="2"/>${[26,34,42,50].map(y=>`<path d="M${x} ${y} L${x+8} ${y+8}" stroke="#F29A3C" stroke-width="1"/>`).join('')}
     <path d="M${x-14} 20 H${x+30}" stroke="#F29A3C" stroke-width="2.4"/><path d="M${x+26} 21 V36" stroke="#6E6C8A" stroke-width=".8"/><rect x="${x-2}" y="58" width="12" height="6" fill="#BFB7A6"/>`).join('');
   s += [[180,16],[250,10],[350,22]].map(([x,y])=>`<path d="M${x} ${y} q3 -3 6 0 q3 -3 6 0" fill="none" stroke="#514F72" stroke-width="1"/>`).join('');
   return groundTile(480, s, '#F2D9A4');
 }
-// Херсонщина: Олешківські піски, Аджигольський маяк, кавуни, сосни
-function khersonGround(){
-  let s = '<path d="M0 64 Q40 40 90 52 Q140 34 200 50 Q260 38 320 52 Q380 40 440 50 Q470 46 480 48 V64 Z" fill="#F2D08A"/>';
-  s += '<path d="M90 52 Q140 34 150 40 Q130 48 120 64 H96 Z M320 52 Q380 40 390 46 Q370 52 362 64 H330 Z" fill="#E5B96A"/>';
-  // Аджигольський маяк — ґратчаста вежа
-  s += `<g stroke="#C8553D" stroke-width=".9" fill="none">${Array.from({length:7}, (_, i)=>`<path d="M${390+i*4} 64 L${(406-i*8/6).toFixed(1)} 12"/><path d="M${414-i*4} 64 L${(398+i*8/6).toFixed(1)} 12"/>`).join('')}
-    <path d="M395 52 H411 M397 38 H409 M399 24 H407"/></g><rect x="397" y="6" width="10" height="7" fill="#fff" stroke="#C8553D" stroke-width="1"/><rect x="399" y="2" width="6" height="4" fill="#E8453C"/>`;
-  // сосни й кущі
-  s += [[24,30],[40,24],[250,28],[268,22],[460,26]].map(([x,h])=>pine(x, h, '#3E8E4F')).join('');
-  // кавуни на баштані
-  s += [[150,60],[168,61],[186,59],[204,61],[300,60]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="6" ry="4.4" fill="#3FA66B"/><path d="M${x-4} ${y-2} q4 2 8 0 M${x-5} ${y+1} q5 2 10 0" stroke="#24704A" stroke-width="1" fill="none"/>`).join('');
-  return groundTile(480, s, '#E9C77E');
-}
-// Запорізька: ДніпроГЕС, Дніпро, Хортиця, козацька Січ, чайка
-function zaporizhzhiaGround(){
-  let s = '<rect y="46" width="480" height="18" fill="#5FA8D8"/>';
-  // ДніпроГЕС: гребля з арками
-  s += `<rect x="0" y="34" width="200" height="8" fill="#B8BFCC"/>${Array.from({length:12}, (_, i)=>`<path d="M${2+i*16.5} 64 V46 Q${10+i*16.5} 40 ${18+i*16.5} 46 V64" fill="#9AA3B5"/>`).join('')}
-    <rect x="0" y="42" width="200" height="4" fill="#9AA3B5"/>${[20,70,120,170].map(x=>`<rect x="${x}" y="26" width="10" height="8" fill="#C9CFDA"/>`).join('')}`;
-  // Хортиця і Січ
-  s += '<path d="M222 64 Q262 36 320 40 Q380 30 440 42 L480 44 V64 Z" fill="#9C8F6E"/><path d="M240 50 Q262 38 320 42 Q380 32 440 44 L480 46 V48 Q380 38 320 46 Q270 44 240 52 Z" fill="#7DAA6A"/>';
-  s += `${Array.from({length:22}, (_, i)=>`<path d="M${312+i*4} 46 V34 L${314+i*4} 31 L${316+i*4} 34 V46 Z" fill="#8B5A2B"/>`).join('')}
-    <rect x="340" y="18" width="14" height="16" fill="#A0703F"/><path d="M337 18 L347 8 L357 18 Z" fill="#6E4A27"/>
-    <rect x="370" y="22" width="18" height="12" fill="#B07A44"/><path d="M372 22 Q379 12 386 22 Z" fill="#7A9A6A"/><path d="M379 14 V8 M377 10.5 H381" stroke="#C99A1E" stroke-width="1"/>`;
-  // чайка
-  s += `<path d="M228 58 H264 L258 63 H234 Z" fill="#8B5A2B"/><path d="M246 57 V38" stroke="#6E4A27" stroke-width="1.2"/><path d="M247 39 Q258 46 247 54 Z" fill="#F4F1E8"/>`;
-  return groundTile(480, s, '#8FBF6F');
-}
-// Крим: Ай-Петрі, Ластівчине гніздо, кипариси, виноградники, море
-function crimeaGround(){
-  let s = '<path d="M0 64 L30 40 L64 30 L86 18 L92 24 L98 13 L104 21 L110 11 L116 21 L148 34 L206 44 L240 64 Z" fill="#9AA88E"/>';
-  s += '<path d="M110 11 L116 21 L148 34 L206 44 L240 64 H140 Z" fill="#87957C"/>';
-  s += '<rect x="236" y="44" width="244" height="20" fill="#4FA6D8"/>' + [[300,52],[380,48],[440,58]].map(([x,y])=>`<path d="M${x} ${y} q4 -2 8 0 t8 0" fill="none" stroke="#CDEBFA" stroke-width="1.2"/>`).join('');
-  // Ластівчине гніздо на скелі
-  s += `<path d="M262 64 L272 42 L300 38 L312 64 Z" fill="#B8A88A"/><rect x="276" y="28" width="22" height="11" fill="#F4F1E8"/>
-    <rect x="281" y="17" width="9" height="11" fill="#F4F1E8"/><path d="M280 17 L285.5 7 L291 17 Z" fill="#C8553D"/>${[279,286,293].map(x=>`<rect x="${x}" y="31" width="2.4" height="5" fill="#9C8B6A"/>`).join('')}`;
-  s += [16, 26, 160, 176, 228, 330, 470].map((x, i)=>cypress(x, 26 + (i%3)*6)).join('');
-  // виноградник
-  s += Array.from({length:4}, (_, r)=>Array.from({length:8}, (_, i)=>`<circle cx="${150+i*9+r*3}" cy="${50+r*4}" r="2" fill="#5F9E4F"/>`).join('')).join('');
-  return groundTile(480, s, '#C9D79A');
-}
 
-// Значок Києва — листок каштана (емодзі такого листка немає): п'ять широких листочків віялом
-const KYIV_LEAF = (()=>{
-  const leaf = 'M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z';
-  const veins = 'M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3';
-  const g = (a, s) => `<g transform="rotate(${a} 12 14) translate(12 14) scale(${s}) translate(-12 -14)"><path d="${leaf}" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/>` +
-    `<path d="${veins}" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g>`;
-  return `<svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/>` +
-    `${g(-86, .72)}${g(86, .72)}${g(-43, .9)}${g(43, .9)}${g(0, 1)}</svg>`;
-})();
-// base — нейрончики за регіон; sky — небо згори донизу; fx — ефект
+// Назва й значок — з довідки rivers.js; base — нейрончики за трасу; sky — небо згори донизу; water — вода; fx — ефект
 const TRACKS = [
-  {id:'kyiv',         name:'Київщина',     emoji:KYIV_LEAF, base:4,  sky:['#8FD3FF','#E3F5FF'], ground:kyivGround()},
-  {id:'poltava',      name:'Полтавщина',   emoji:'🌻', base:5,  sky:['#A4DCFF','#FFF6D8'], ground:poltavaGround(), fx:'sun'},
-  {id:'lviv',         name:'Львівщина',    emoji:'🦁', base:6,  sky:['#A9BCD0','#E4ECF3'], ground:lvivGround(), fx:'rain'},
-  {id:'podillia',     name:'Поділля',      emoji:'🏰', base:7,  sky:['#8CCBF5','#EAF6FF'], ground:podilliaGround()},
-  {id:'carpathians',  name:'Карпати',      emoji:'🌲', base:8,  sky:['#7CC4EE','#DDF2E6'], ground:carpathiansGround(), fx:'leaves'},
-  {id:'kharkiv',      name:'Харківщина',   emoji:'🏛️', base:9,  sky:['#94CFF7','#F0F8FF'], ground:kharkivGround()},
-  {id:'odesa',        name:'Одещина',      emoji:'⚓', base:10, sky:['#6FC3FF','#E6F7FF'], ground:odesaGround()},
-  {id:'kherson',      name:'Херсонщина',   emoji:'🍉', base:11, sky:['#78C6F5','#FFEFD0'], ground:khersonGround(), fx:'sun'},
-  {id:'zaporizhzhia', name:'Запоріжжя',    emoji:'⚔️', base:13, sky:['#84C3F0','#FCE9D6'], ground:zaporizhzhiaGround()},
-  {id:'crimea',       name:'Крим',         emoji:'⛰️', base:15, sky:['#6FB8EE','#FFE6C7'], ground:crimeaGround(), fx:'sun'}
-];
+  {id:'dnipro',    base:4,  sky:['#8FD3FF','#E3F5FF'], water:['#5AA9DD','#2F7FB8'], ground:dniproGround()},
+  {id:'desna',     base:5,  sky:['#A4DCFF','#FFF6D8'], water:['#6CB6D9','#3D8FB5'], ground:desnaGround(), fx:'sun'},
+  {id:'buh',       base:6,  sky:['#94CFF7','#F0F8FF'], water:['#5C9FC4','#2E6F96'], ground:buhGround()},
+  {id:'dniester',  base:7,  sky:['#8CCBF5','#EAF6FF'], water:['#6FA6B5','#3E7487'], ground:dniesterGround()},
+  {id:'cheremosh', base:8,  sky:['#7CC4EE','#DDF2E6'], water:['#7CC3D6','#3E97B3'], ground:cheremoshGround(), fx:'leaves'},
+  {id:'tysa',      base:9,  sky:['#A9BCD0','#E4ECF3'], water:['#7BB0B8','#43818C'], ground:tysaGround(), fx:'rain'},
+  {id:'dunai',     base:11, sky:['#78C6F5','#FFEFD0'], water:['#7FAF9A','#4C8570'], ground:dunaiGround(), fx:'sun'},
+  {id:'sea',       base:13, sky:['#6FC3FF','#E6F7FF'], water:['#3E9BD8','#1B5F9E'], ground:seaGround(), fx:'sun'}
+].map(t=>({ ...t, name:RIVERS[t.id].name, emoji:RIVERS[t.id].emoji }));
 const trackIdx = id => TRACKS.findIndex(t=>t.id===id);
 
 
-/* ================= Складність: регіон → текст, куля → суперник ================= */
-// По два регіони на кожен рівень тексту
-const TRACK_LEVEL = { kyiv:'home', poltava:'home', lviv:BOOST ? 'words' : 'top', podillia:BOOST ? 'words' : 'top', carpathians:'words', kharkiv:'words',
-                      odesa:'sentences', kherson:'sentences', zaporizhzhia:'long', crimea:'long' };
+/* ================= Складність: траса → текст, плавзасіб → суперник ================= */
+// По дві траси на рівень тексту, Дунай — фрази, море — більше фраз
+const TRACK_LEVEL = { dnipro:'home', desna:'home', buh:BOOST ? 'words' : 'top', dniester:BOOST ? 'words' : 'top', cheremosh:'words', tysa:'words',
+                      dunai:'sentences', sea:'long' };
 const LEVEL_NAME = { home:'основний ряд', top:'основний і верхній ряд', words:'слова', sentences:BOOST ? 'речення' : 'фрази', long:BOOST ? 'довгі речення' : 'більше фраз', punct:'розділові знаки', ukpunct:'розділові знаки', digits:'цифри', code:'код', drill:'слабкі клавіші' };
 const stageLevel = ([track, , level]) => level || TRACK_LEVEL[track];
-const BALLOON_ORDER = ['classic','patch','stars','vyshyvanka','sunflower','firebird'];
-const BALLOON_CPM = BOOST ? { classic:35, patch:50, stars:65, vyshyvanka:80, sunflower:100, firebird:125 }
-                          : { classic:12, patch:16, stars:20, vyshyvanka:25, sunflower:30, firebird:40 };
+const BOAT_ORDER = ['rowboat','kayak','sailboat','motorboat','chaika','yacht'];
+const BOAT_CPM = BOOST ? { rowboat:35, kayak:50, sailboat:65, motorboat:80, chaika:100, yacht:125 }
+                       : { rowboat:12, kayak:16, sailboat:20, motorboat:25, chaika:30, yacht:40 };
 const BOT_COLOR = '#6C5CE7';
 // Підтримка для початківців (не діє у змаганнях pro і в ?boost, окрім робота під учня, і в день робота — див. ROBOT_DAY):
 // delay — робот рушає на стільки секунд пізніше;
@@ -1132,23 +1162,24 @@ const BOT_COLOR = '#6C5CE7';
 const ASSIST = { delay:2.5, lead:0, ratio:0.9, min:0.5, idle:2, idleMs:4000, ease:1.5 };
 // Перемога зі швидкістю від PRO_CPM зн/хв і точністю від 90% відкриває змагання pro
 const PRO_CPM = 45;
-// Налаштування вчителя в адресі (лише для вільних польотів, змагання не змінюються):
-// ?robot=8 — швидкість робота 8 зн/хв для будь-якої кулі (від 3 до 150);
+// Налаштування вчителя в адресі (лише для вільних запливів, змагання не змінюються):
+// ?robot=8 — швидкість робота 8 зн/хв для будь-якого плавзасобу (від 3 до 150);
 // ?bez-robota — тренування без суперника
 const TEACHER = (()=>{
   const q = new URLSearchParams(location.search);
   const cpm = Math.round(+q.get('robot'));
   return { cpm: cpm >= 3 && cpm <= 150 ? cpm : 0, noBot: q.has('bez-robota') };
 })();
-// Робот під гравця: перший політ заміряє швидкість учня, далі робот їде трохи повільніше за неї — PACE_RATIO
-// від швидкості учня на цьому рівні тексту (у вільному польоті на новому рівні — від загальної). Чим крутіша куля,
-// тим ближче робот до учня; вирвавшись уперед, він пригальмовує (ASSIST), тож гонка йде впритул.
-// День робота: приблизно в кожному шостому польоті (ROBOT_DAY.chance, але не двічі поспіль) робот їде швидше
+// Робот під гравця: перший заплив заміряє швидкість учня (або її беремо з «Повітряних перегонів» — importPace),
+// далі робот пливе трохи повільніше за неї — PACE_RATIO від швидкості учня на цьому рівні тексту (у вільному запливі
+// на новому рівні — від загальної). Чим кращий плавзасіб, тим ближче робот до учня; вирвавшись уперед, він
+// пригальмовує (ASSIST), тож гонка йде впритул.
+// День робота: приблизно в кожному шостому запливі (ROBOT_DAY.chance, але не двічі поспіль) робот пливе швидше
 // за звичну швидкість учня (ROBOT_DAY.ratio) і не пригальмовує — учень виграє, лише якщо надрукує краще, ніж зазвичай.
-// Поки швидкість не заміряна, робот летить зі швидкістю кулі (BALLOON_CPM).
-// Після кожного польоту (крім тренування клавіш) швидкість учня оновлюється: швидший політ важить up,
-// повільніший — down, щоб один невдалий політ не робив робота зовсім повільним
-const PACE_RATIO = { classic:0.84, patch:0.86, stars:0.88, vyshyvanka:0.9, sunflower:0.92, firebird:0.94 };
+// Поки швидкість не заміряна, робот пливе зі швидкістю плавзасобу (BOAT_CPM).
+// Після кожного запливу (крім тренування клавіш) швидкість учня оновлюється: швидший заплив важить up,
+// повільніший — down, щоб один невдалий заплив не робив робота зовсім повільним
+const PACE_RATIO = { rowboat:0.84, kayak:0.86, sailboat:0.88, motorboat:0.9, chaika:0.92, yacht:0.94 };
 const PACE_EMA = { up:0.5, down:0.25, minChars:10 };
 const ROBOT_DAY = { chance:0.2, ratio:1.1 };
 const paceKey = (lang, level) => `${lang}-${level}`;
@@ -1171,37 +1202,35 @@ function updatePace(lang, level, speed){
 
 /* ================= Нейрончики й розблокування ================= */
 const UNLOCKS = [
-  { kind:'balloon', id:'classic',      at:0 },
-  { kind:'track',   id:'kyiv',         at:0 },
-  { kind:'track',   id:'poltava',      at:20 },
-  { kind:'balloon', id:'patch',        at:30 },
-  { kind:'track',   id:'lviv',         at:45 },
-  { kind:'track',   id:'podillia',     at:70 },
-  { kind:'balloon', id:'stars',        at:110 },
-  { kind:'track',   id:'carpathians',  at:150 },
-  { kind:'track',   id:'kharkiv',      at:200 },
-  { kind:'balloon', id:'vyshyvanka',   at:270 },
-  { kind:'track',   id:'odesa',        at:330 },
-  { kind:'track',   id:'kherson',      at:400 },
-  { kind:'balloon', id:'sunflower',    at:480 },
-  { kind:'track',   id:'zaporizhzhia', at:560 },
-  { kind:'track',   id:'crimea',       at:650 },
-  { kind:'balloon', id:'firebird',     at:750 }
+  { kind:'boat',  id:'rowboat',   at:0 },
+  { kind:'track', id:'dnipro',    at:0 },
+  { kind:'track', id:'desna',     at:20 },
+  { kind:'boat',  id:'kayak',     at:30 },
+  { kind:'track', id:'buh',       at:45 },
+  { kind:'track', id:'dniester',  at:70 },
+  { kind:'boat',  id:'sailboat',  at:110 },
+  { kind:'track', id:'cheremosh', at:150 },
+  { kind:'track', id:'tysa',      at:200 },
+  { kind:'boat',  id:'motorboat', at:270 },
+  { kind:'track', id:'dunai',     at:330 },
+  { kind:'boat',  id:'chaika',    at:420 },
+  { kind:'track', id:'sea',       at:500 },
+  { kind:'boat',  id:'yacht',     at:600 }
 ];
 const unlockAt = (kind, id) => UNLOCKS.find(u=>u.kind===kind && u.id===id).at;
 const isOpen = (kind, id, n = profile.neurons) => n >= unlockAt(kind, id);
 
-// Нейрончики за політ: (складність регіону + RIDE_PTS) × точність + бонус за перемогу + FASTER_PTS, якщо учень надрукував
-// швидше, ніж зазвичай на цьому тексті. Куля приземлилась раніше — перша частина лише за ту частку хвилини, що була в повітрі (flown).
-// За саму швидкість нейрончиків немає: політ завжди триває хвилину, тож регіони й кулі відкриваються за час гри й точність
+// Нейрончики за заплив: (складність траси + RIDE_PTS) × точність + бонус за перемогу + FASTER_PTS, якщо учень надрукував
+// швидше, ніж зазвичай на цьому тексті. За саму швидкість нейрончиків немає: заплив завжди триває хвилину,
+// тож траси й плавзасоби відкриваються за час гри й точність
 const RIDE_PTS = 4, FASTER_PTS = 3;
 function neuronsFor(r){
   const base = TRACKS[trackIdx(r.track)].base;
   const [a1, a2, a3] = BOOST ? [95, 90, 80] : [90, 80, 70];
-  const mult = r.errors === 0 && !r.landed ? 1.5 : r.acc >= a1 ? 1.2 : r.acc >= a2 ? 1 : r.acc >= a3 ? 0.6 : 0.3;
+  const mult = r.errors === 0 && r.typed >= PACE_EMA.minChars ? 1.5 : r.acc >= a1 ? 1.2 : r.acc >= a2 ? 1 : r.acc >= a3 ? 0.6 : 0.3;
   const win = r.won ? base : 0;
   const faster = r.faster ? FASTER_PTS : 0;
-  return { base, ride:RIDE_PTS, mult, win, faster, total: Math.round((base + RIDE_PTS) * mult * r.flown) + win + faster };
+  return { base, ride:RIDE_PTS, mult, win, faster, total: Math.round((base + RIDE_PTS) * mult) + win + faster };
 }
 const NEURON = `<svg class="nico" viewBox="0 0 24 24" fill="none" aria-hidden="true">
   <line x1="16.2" y1="12" x2="20.3" y2="12" stroke="#FFC93C" stroke-width="1.6" stroke-linecap="round"/><circle cx="20.3" cy="12" r="1.2" fill="#FFC93C"/>
@@ -1237,9 +1266,8 @@ BADGES.code = `<rect x="3" y="6" width="34" height="28" rx="6" fill="#1B1B3A" ${
     <text x="20" y="25" text-anchor="middle" font-family="Consolas, monospace" font-weight="900" font-size="13" fill="#FFC93C">&lt;/&gt;</text>`;
 BADGES.sunflower = `${Array.from({length:12}, (_, i)=>`<ellipse cx="20" cy="7" rx="3.6" ry="7" fill="#FFC93C" ${OUT} transform="rotate(${i*30} 20 20)"/>`).join('')}
     <circle cx="20" cy="20" r="8" fill="#7A4A22"/><circle cx="17" cy="18" r="1.3" fill="#C98E45"/><circle cx="22" cy="21" r="1.3" fill="#C98E45"/><circle cx="18" cy="23" r="1.3" fill="#C98E45"/>`;
-BADGES.balloon = `<path d="M20 2 C31 2 36 10 36 18 C36 26 27 31 23 34 H17 C13 31 4 26 4 18 C4 10 9 2 20 2 Z" fill="#FF6B4A" ${OUT}/>
-    <path d="M20 2 C25 2 27 10 27 18 C27 26 22 31 21.5 34 H18.5 C18 31 13 26 13 18 C13 10 15 2 20 2 Z" fill="#FFC93C"/>
-    <rect x="15.5" y="34" width="9" height="5" rx="1.2" fill="#C08A45" stroke="#fff" stroke-width="1.5" paint-order="stroke"/>`;
+BADGES.boat = `<rect x="19" y="3" width="2.4" height="25" fill="#6E5536" ${OUT}/><path d="M18 6 V25 H6 Z" fill="#fff" ${OUT}/><path d="M22.5 8 V25 H33 Z" fill="#FF6B4A" ${OUT}/>
+    <path d="M3 28 H37 L31 36 H9 Z" fill="#2D9CDB" ${OUT}/>`;
 BADGES.lantern = `<rect x="18.5" y="2" width="3" height="6" fill="#514F72" ${OUT}/><path d="M12 10 H28 L26 30 H14 Z" fill="#FFC93C" ${OUT}/>
     <path d="M10 10 L20 4 L30 10 Z" fill="#514F72"/><path d="M13 30 H27 V34 H13 Z" fill="#514F72"/><path d="M20 12 V28 M15 20 H25" stroke="#E8A33D" stroke-width="1.4"/>`;
 BADGES.anchor = `<circle cx="20" cy="20" r="17" fill="#2D9CDB" ${OUT}/><g stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none">
@@ -1247,50 +1275,50 @@ BADGES.anchor = `<circle cx="20" cy="20" r="17" fill="#2D9CDB" ${OUT}/><g stroke
 const badgeHTML = (id, title='') => BADGES[id] ? `<span class="badge-ico"${title ? ` title="${esc(title)}"` : ''}><svg viewBox="-2 -2 44 44" aria-hidden="true">${BADGES[id]}</svg></span>` : '';
 
 /* ================= Змагання ================= */
-// stages — [регіон, мова, текст?] кожного етапу (текст — рівень з TEXTS, за замовчуванням — за регіоном); cpm — швидкість робота-суперника; balloons — дозволені кулі (null — будь-яка);
-// pro — змагання видно лише гравцям із результатом, незвичним для 2–3 класу (див. PRO_CPM)
+// stages — [траса, мова, текст?] кожного етапу (текст — рівень з TEXTS, за замовчуванням — за трасою); cpm — швидкість робота-суперника;
+// boats — дозволені плавзасоби (null — будь-який); pro — змагання видно лише гравцям із результатом, незвичним для 2–3 класу (див. PRO_CPM)
 const COMPS = [
-  { id:'kyiv', name:'Кубок Києва', badge:'chestnut', cpm:12, minAcc:70, balloons:null,
-    desc:'Три польоти над столицею. Найкраще змагання для першого старту.',
-    stages:[['kyiv','uk'],['kyiv','uk'],['kyiv','uk']] },
-  { id:'poltava', name:'Сорочинський ярмарок', badge:'sunflower', cpm:14, minAcc:72, balloons:null,
-    desc:'З Києва — на ярмарок, над хатами й соняшниковими полями Полтавщини.',
-    stages:[['kyiv','uk'],['poltava','uk'],['poltava','uk']] },
-  { id:'fiesta', name:'Міжнародна фієста', badge:'balloon', cpm:14, minAcc:72, balloons:null,
-    desc:'Фестиваль повітряних куль над Кам\'янцем-Подільським: польоти англійською мовою.',
-    stages:[['podillia','en','home'],['podillia','en','home'],['carpathians','en']] },
-  { id:'lights', name:'Нічні вогні', badge:'lantern', cpm:16, minAcc:75, balloons:['patch'],
-    desc:'Тільки для клаптикової кулі! Чотири польоти над Львовом і Харковом двома мовами.',
-    stages:[['lviv','en'],['kharkiv','en'],['lviv','uk'],['kharkiv','uk']] },
-  { id:'sands', name:'Олешківські піски', badge:'compass', cpm:18, minAcc:75, balloons:['stars'],
-    desc:'Марафон над найбільшою пустелею України. Потрібна зоряна куля.',
-    stages:[['carpathians','uk'],['kherson','uk'],['kherson','en'],['kherson','uk']] },
-  { id:'breeze', name:'Чорноморський бриз', badge:'anchor', cpm:20, minAcc:78, balloons:['vyshyvanka'],
-    desc:'Морський вітер, маяки й точні пальці.',
-    stages:[['kharkiv','uk'],['odesa','uk'],['odesa','uk']] },
-  { id:'sich', name:'Козацька ватра', badge:'flame', cpm:22, minAcc:78, balloons:['vyshyvanka'],
-    desc:'Над Дніпром і Хортицею: друкуй обережно, як справжній козак.',
-    stages:[['odesa','uk'],['zaporizhzhia','uk'],['zaporizhzhia','uk']] },
-  { id:'around', name:'Навколо України', badge:'laurel', cpm:25, minAcc:80, balloons:['sunflower'],
-    desc:'Марафон витривалості: п\'ять етапів від Києва до Криму.',
-    stages:[['kyiv','uk'],['carpathians','en'],['kherson','uk'],['crimea','en'],['crimea','uk']] },
-  { id:'aipetri', name:'Висота Ай-Петрі', badge:'crown', cpm:55, minAcc:90, balloons:['firebird'], pro:true,
-    desc:'Королівські перегони — лише для жар-птиці й найточніших пілотів.',
-    stages:[['odesa','uk'],['crimea','uk'],['crimea','en']] },
-  { id:'punct', name:'Слалом знаків', badge:'bubble', cpm:30, minAcc:80, balloons:null, lvl:4, pro:true,
-    desc:'Англійські речення, повні розділових знаків: . , - ( ) " ! ? @ \' : — підійде будь-яка куля.',
-    stages:[['kyiv','en','punct'],['kyiv','en','punct'],['carpathians','en','punct'],['carpathians','en','punct'],['odesa','en','punct'],['crimea','en','punct']] },
-  { id:'ukpunct', name:'Знаки українською', badge:'quotes', cpm:30, minAcc:80, balloons:null, lvl:5, pro:true,
+  { id:'cup', name:'Кубок Дніпра', badge:'chestnut', cpm:12, minAcc:70, boats:null,
+    desc:'Три запливи Дніпром повз київські кручі. Найкраще змагання для першого старту.',
+    stages:[['dnipro','uk'],['dnipro','uk'],['dnipro','uk']] },
+  { id:'desna', name:'Зачарована Десна', badge:'sunflower', cpm:14, minAcc:72, boats:null,
+    desc:'З Дніпра вгору Десною — до піщаних пляжів Чернігівщини.',
+    stages:[['dnipro','uk'],['desna','uk'],['desna','uk']] },
+  { id:'regatta', name:'Міжнародна регата', badge:'boat', cpm:14, minAcc:72, boats:null,
+    desc:'Регата на Дністрі біля Хотинської фортеці: запливи англійською мовою.',
+    stages:[['dniester','en','home'],['dniester','en','home'],['cheremosh','en']] },
+  { id:'rapids', name:'Гранітні пороги', badge:'compass', cpm:16, minAcc:75, boats:['kayak'],
+    desc:'Тільки для байдарки! Чотири запливи порогами Бугу й Черемошу двома мовами.',
+    stages:[['buh','en'],['cheremosh','en'],['buh','uk'],['cheremosh','uk']] },
+  { id:'lights', name:'Нічні вогні', badge:'lantern', cpm:18, minAcc:75, boats:['sailboat'],
+    desc:'Марафон під вітрилом: від Дністра до Тиси. Потрібен вітрильник.',
+    stages:[['dniester','uk'],['tysa','uk'],['tysa','en'],['tysa','uk']] },
+  { id:'delta', name:'Дунайські плавні', badge:'anchor', cpm:20, minAcc:78, boats:['motorboat'],
+    desc:'Катером дельтою Дунаю: очерет, пелікани й вулиці-канали Вилкового.',
+    stages:[['tysa','uk'],['dunai','uk'],['dunai','uk']] },
+  { id:'pokhid', name:'Козацький похід', badge:'flame', cpm:22, minAcc:78, boats:['chaika'],
+    desc:'Як козаки на чайках: Дніпром і Дунаєм — аж до Чорного моря.',
+    stages:[['dnipro','uk'],['dunai','uk'],['sea','uk']] },
+  { id:'around', name:'Навколо України', badge:'laurel', cpm:25, minAcc:80, boats:['chaika'],
+    desc:'Марафон витривалості: п\'ять етапів від Десни до моря.',
+    stages:[['desna','uk'],['cheremosh','en'],['dniester','uk'],['sea','en'],['sea','uk']] },
+  { id:'odesa', name:'Кубок Одеси', badge:'crown', cpm:55, minAcc:90, boats:['yacht'], pro:true,
+    desc:'Королівська регата — лише для яхти й найточніших капітанів.',
+    stages:[['dunai','uk'],['sea','uk'],['sea','en']] },
+  { id:'punct', name:'Слалом знаків', badge:'bubble', cpm:30, minAcc:80, boats:null, lvl:4, pro:true,
+    desc:'Англійські речення, повні розділових знаків: . , - ( ) " ! ? @ \' : — підійде будь-який плавзасіб.',
+    stages:[['dnipro','en','punct'],['dnipro','en','punct'],['cheremosh','en','punct'],['cheremosh','en','punct'],['dunai','en','punct'],['sea','en','punct']] },
+  { id:'ukpunct', name:'Знаки українською', badge:'quotes', cpm:30, minAcc:80, boats:null, lvl:5, pro:true,
     desc:'Українські речення з комами, двокрапками, лапками й апострофом. На українській розкладці знаки стоять не там, де на англійській.',
-    stages:[['kyiv','uk','ukpunct'],['lviv','uk','ukpunct'],['carpathians','uk','ukpunct'],['odesa','uk','ukpunct']] },
-  { id:'code', name:'Цифри й код', badge:'code', cpm:25, minAcc:80, balloons:null, lvl:6, pro:true,
+    stages:[['dnipro','uk','ukpunct'],['dniester','uk','ukpunct'],['cheremosh','uk','ukpunct'],['sea','uk','ukpunct']] },
+  { id:'code', name:'Цифри й код', badge:'code', cpm:25, minAcc:80, boats:null, lvl:6, pro:true,
     desc:'Числа, дати, час і перші рядки програм: тренуємо цифровий ряд, дужки й знаки.',
-    stages:[['kyiv','uk','digits'],['kharkiv','uk','digits'],['kyiv','en','code'],['odesa','en','code'],['zaporizhzhia','en','code']] }
+    stages:[['dnipro','uk','digits'],['tysa','uk','digits'],['dnipro','en','code'],['dunai','en','code'],['sea','en','code']] }
 ];
 // ?boost: швидкість робота й мінімальна точність змагань — як в оригінальній грі «Клавіатурні перегони»
 if(BOOST){
-  const ORIG = { kyiv:[35,85], poltava:[45,88], fiesta:[45,88], lights:[60,90], sands:[70,90], breeze:[80,92],
-                 sich:[85,92], around:[100,93], aipetri:[125,95], punct:[40,85], ukpunct:[40,85], code:[40,85] };
+  const ORIG = { cup:[35,85], desna:[45,88], regatta:[45,88], rapids:[60,90], lights:[70,90], delta:[80,92],
+                 pokhid:[85,92], around:[100,93], odesa:[125,95], punct:[40,85], ukpunct:[40,85], code:[40,85] };
   COMPS.forEach(c=>{ [c.cpm, c.minAcc] = ORIG[c.id]; });
 }
 const MEDALS = { gold:['🥇','Золото'], silver:['🥈','Срібло'], bronze:['🥉','Бронза'] };
@@ -1309,10 +1337,10 @@ const compVisible = (c, p = profile) => BOOST || UNLOCK_ALL || !c.pro || p.pro;
 // Складність: за місцем у списку або власна (lvl) — для змагань, доданих у кінець, щоб не зсувати номери в посиланнях #z=N
 const diffDots = (c, i) => { const d = c.lvl || i + 1; return '●'.repeat(d) + `<i>${'●'.repeat(COMPS.length - d)}</i>`; };
 const avg = (arr, i) => Math.round(arr.reduce((s, x)=>s + x[i], 0) / arr.length);
-// Куля для змагання: обрана, якщо дозволена, інакше найкраща з дозволених відкритих
-function compBalloon(c){
-  if(!c.balloons || c.balloons.includes(settings.model)) return settings.model;
-  return c.balloons.filter(id=>isOpen('balloon', id)).pop() || null;
+// Плавзасіб для змагання: обраний, якщо дозволений, інакше найкращий із дозволених відкритих
+function compBoat(c){
+  if(!c.boats || c.boats.includes(settings.model)) return settings.model;
+  return c.boats.filter(id=>isOpen('boat', id)).pop() || null;
 }
 
 /* ================= Гравці (localStorage цього пристрою) ================= */
@@ -1320,8 +1348,8 @@ const today = () => { const d = new Date(); return Math.floor((d - d.getTimezone
 const fmtDay = day => new Date(day * 86400000).toLocaleDateString('uk-UA', { timeZone:'UTC' });
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const STORE_KEY = BOOST ? 'balloon-race-kids-boost-v1' : 'balloon-race-kids-v1';
-const DEFAULT_SETTINGS = { lang:'uk', model:'classic', track:'kyiv', badge:'' };
+const STORE_KEY = BOOST ? 'water-race-kids-boost-v1' : 'water-race-kids-v1';
+const DEFAULT_SETTINGS = { lang:'uk', model:'rowboat', track:'dnipro', badge:'', flag:'ua' };
 // comps: найкращий результат кожного змагання; run — змагання в процесі
 const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, stickers:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
 let store = { current:null, players:{} };
@@ -1341,40 +1369,48 @@ function loadPlayer(name){
   settings.colors = { ...settings.colors };   // власна копія кольорів у кожного гравця
   profile.runs ||= {};
   profile.stickers ||= {};
-  if(!profile.pace && profile.hist){   // гравець, що грав до заміру швидкості: беремо середню за останній день
-    const last = profile.hist[Math.max(...Object.keys(profile.hist))];
-    if(last?.[1]) profile.pace = { all: Math.round(last[0] / last[1]) };
-  }
+  if(!profile.pace) importPace(name);
   selComp = compById(profile.joined) ? profile.joined : null;
   saveStore();
   renderPlayerBtn();
   renderHUD();
 }
 const earnedBadges = p => COMPS.filter(c=>p.comps[c.id]).map(c=>c.badge);
+// Робот одразу під учня: якщо учень із тим самим ім'ям уже грав на цьому пристрої в «Повітряні перегони»,
+// беремо його звичну швидкість звідти (для ?boost — з окремого прогресу), і заміряти її першим запливом не треба
+const BALLOON_KEY = BOOST ? 'balloon-race-kids-boost-v1' : 'balloon-race-kids-v1';
+let paceImported = false;
+function importPace(name){
+  try{
+    const pace = JSON.parse(localStorage.getItem(BALLOON_KEY))?.players?.[name]?.pace;
+    if(pace && Object.keys(pace).length){ profile.pace = { ...pace }; paceImported = true; }
+  }catch(e){}
+}
 
 /* ================= Наліпки ================= */
-// Наліпки за досягнення, як у «Мишачих перегонах» і «Подвійному клацанні». Одні — за один політ: test(r),
-// r — підсумок польоту. Інші збираються за кілька польотів: count(p) — скільки вже є в профілі після польоту, need — скільки треба
-const wonOn = (p, i) => new Set(Object.keys(p.bests || {}).map(k=>k.split('-')[i])).size;   // мов (0) чи регіонів (1) з перемогою
+// Наліпки за досягнення, як у «Мишачих перегонах» і «Подвійному клацанні». Одні — за один заплив: test(r),
+// r — підсумок запливу. Інші збираються за кілька запливів: count(p) — скільки вже є в профілі після запливу, need — скільки треба.
+// Деякі наліпки ще й відкривають прапорці (PENNANTS)
+const wonOn = (p, i) => new Set(Object.keys(p.bests || {}).map(k=>k.split('-')[i])).size;   // мов (0) чи трас (1) з перемогою
 const STICKERS = [
-  { id:'first',   ico:'🏁', name:'Перший фініш',     how:'Протриматися в повітрі до фінішу',                  test:r=>!r.landed },
-  { id:'win',     ico:'🤖', name:'Обігнав робота',   how:'Пролетіти далі за робота',                          test:r=>r.won },
-  { id:'clean',   ico:'✨', name:'Чистий політ',     how:'Долетіти до фінішу без жодної помилки',             test:r=>r.errors === 0 && !r.landed && r.typed >= PACE_EMA.minChars },
+  { id:'first',   ico:'🏁', name:'Перший фініш',     how:'Пропливти перший заплив до фінішу',                 test:r=>r.typed > 0 },
+  { id:'win',     ico:'🤖', name:'Обігнав робота',   how:'Пропливти далі за робота',                          test:r=>r.won },
+  { id:'clean',   ico:'✨', name:'Чистий заплив',    how:'Пропливти без жодної помилки',                      test:r=>r.errors === 0 && r.typed >= PACE_EMA.minChars },
   { id:'streak',  ico:'🔥', name:'Без промаху',      how:'Натиснути 20 правильних клавіш поспіль',            test:r=>r.topStreak >= 20 },
-  { id:'high',    ico:'☁️', name:'Під хмарами',      how:'Піднятися на найвищу висоту',                       test:r=>r.top },
-  { id:'record',  ico:'📈', name:'Новий рекорд',     how:'Побити свій рекорд швидкості в регіоні',            test:r=>r.newRecord },
+  { id:'nonstop', ico:'💨', name:'Повний хід',       how:'Пропливти всю хвилину без зупинок, довших за 3 секунди', test:r=>r.nonstop },
+  { id:'record',  ico:'📈', name:'Новий рекорд',     how:'Побити свій рекорд швидкості на трасі',             test:r=>r.newRecord },
   { id:'drill',   ico:'💪', name:'Над помилками',    how:'Потренувати клавіші, на яких були помилки',          test:r=>r.drill },
   { id:'langs',   ico:'🌍', name:'Дві мови',         how:'Перемогти українською й англійською',               count:p=>wonOn(p, 0), need:2 },
-  { id:'tracks',  ico:'🗺️', name:'Мандрівник',       how:'Перемогти в усіх десяти регіонах',                  count:p=>wonOn(p, 1), need:TRACKS.length },
-  { id:'races',   ico:'🎈', name:'Повітроплавець',   how:'Здійснити 25 польотів',                             count:p=>p.races, need:25 },
+  { id:'tracks',  ico:'🗺️', name:'Мандрівник',       how:'Перемогти на всіх восьми трасах',                   count:p=>wonOn(p, 1), need:TRACKS.length },
+  { id:'races',   ico:'⛵', name:'Мореплавець',      how:'Здійснити 25 запливів',                             count:p=>p.races, need:25 },
   { id:'days',    ico:'📅', name:'Щодня потроху',    how:'Грати в 5 різних днів',                             count:p=>Object.keys(p.hist || {}).length, need:5 },
   { id:'medal',   ico:'🎖️', name:'Призер',           how:'Пройти всі етапи змагання й отримати медаль',       count:p=>Object.keys(p.comps).length, need:1 },
   { id:'neurons', ico:'🧠', name:'Розумник',         how:'Зібрати 1000 нейрончиків',                          count:p=>p.neurons, need:1000 },
 ];
-// Наліпки з count збирають за кілька польотів: скільки вже є з need (лише для ще не отриманих)
+// Наліпки з count збирають за кілька запливів: скільки вже є з need (лише для ще не отриманих)
 const stickerProgress = st=>st.count && !profile.stickers[st.id] ? Math.min(st.count(profile) || 0, st.need) : 0;
 const stickerTip = st=>{ const n = stickerProgress(st); return `${st.how}${n ? ` — уже ${n} з ${st.need}` : ''}`; };
-// Наліпка: отримана — кольорова, ще ні — сіра; та, що збирається за кілька польотів, частково заповнена кольором,
+// Наліпка: отримана — кольорова, ще ні — сіра; та, що збирається за кілька запливів, частково заповнена кольором,
 // а під назвою — скільки вже зібрано
 function stickerHTML(st){
   const n = stickerProgress(st);
@@ -1404,7 +1440,7 @@ const soundOn = true;
 // Гучний режим для класу: голосніше й більше ефектів (хлопавка, фанфари, конфеті).
 // Учням його не показуємо: вмикає вчитель адресою ?zvuk=klas (вимикає ?zvuk=tykho) або Ctrl+Alt+Z.
 // Режим запам'ятовується на цьому пристрої
-const SOUND_KEY = 'balloon-race-kids-sound';
+const SOUND_KEY = 'water-race-kids-sound';
 let loud = false;
 try{ loud = localStorage.getItem(SOUND_KEY) === 'loud'; }catch(e){}
 function setLoud(on){
@@ -1462,12 +1498,13 @@ function celebrate(big){
 }
 
 
-/* ================= Небо й кулі на екрані ================= */
+/* ================= Річка й човни на екрані ================= */
 const trackEl = document.getElementById('track');
-const balMe = document.getElementById('balMe');
-const balBot = document.getElementById('balBot');
+const boatMe = document.getElementById('boatMe');
+const boatBot = document.getElementById('boatBot');
 const fxEl = document.getElementById('fx');
 const groundEl = document.getElementById('ground');
+const waterEl = document.getElementById('water');
 const cloudsEl = document.getElementById('clouds');
 const mastEl = document.getElementById('mast');
 const timerEl = document.getElementById('timer');
@@ -1478,6 +1515,7 @@ function applyTrack(id){
   trackEl.style.setProperty('--sky1', t.sky[0]);
   trackEl.style.setProperty('--sky2', t.sky[1]);
   groundEl.style.backgroundImage = t.ground;
+  waterEl.style.backgroundImage = `${WAVES}, linear-gradient(180deg, ${t.water[0]}, ${t.water[1]})`;
   document.getElementById('trackName').innerHTML = `${t.emoji} ${t.name}`;
   fxEl.innerHTML = '';
   if(t.fx === 'sun') fxEl.innerHTML = '<div class="sun"></div>';
@@ -1489,76 +1527,67 @@ function applyTrack(id){
     d.style.animationDelay = (-Math.random()*2) + 's';
     fxEl.appendChild(d);
   }
-  if(t.fx === 'snow' || t.fx === 'leaves'){
-    const n = t.fx === 'snow' ? 26 : 9;
-    for(let i=0;i<n;i++){
-      const f = document.createElement('div');
-      f.className = t.fx === 'snow' ? 'flake' : 'leaf';
-      f.style.left = (Math.random()*105) + '%';
-      f.style.animationDuration = (t.fx === 'snow' ? 4 + Math.random()*4 : 6 + Math.random()*5) + 's';
-      f.style.animationDelay = (-Math.random()*8) + 's';
-      if(t.fx === 'snow'){ const s = 3 + Math.random()*4; f.style.width = f.style.height = s + 'px'; }
-      else f.style.background = ['#E8A33D','#D9653B','#C9B03A'][i%3];
-      fxEl.appendChild(f);
-    }
+  if(t.fx === 'leaves') for(let i=0;i<9;i++){
+    const f = document.createElement('div');
+    f.className = 'leaf';
+    f.style.left = (Math.random()*105) + '%';
+    f.style.animationDuration = (6 + Math.random()*5) + 's';
+    f.style.animationDelay = (-Math.random()*8) + 's';
+    f.style.background = ['#E8A33D','#D9653B','#C9B03A'][i%3];
+    fxEl.appendChild(f);
   }
 }
-// Табличка під кошиком: бейджик + ім'я
+// Табличка над човном: бейджик + ім'я
 const nameTag = (name, badge) => `<span class="tag">${badgeHTML(badge)}${esc(name)}</span>`;
-function drawBalloons(model = settings.model){
-  const myColor = balloonColor(model);
+function drawBoats(model = settings.model){
+  const myColor = boatColor(model);
   const botColor = myColor === BOT_COLOR ? '#16A3A0' : BOT_COLOR;
-  balMe.innerHTML = balloonSVG(model, myColor, 'me') + nameTag(player || 'Ти', settings.badge);
-  balBot.innerHTML = balloonSVG(model, botColor, 'bot') + `<span class="tag">🤖 Робот</span>`;
+  boatMe.innerHTML = boatSVG(model, myColor, 'me') + nameTag(player || 'Ти', settings.badge);
+  boatBot.innerHTML = boatSVG(model, botColor, 'bot') + `<span class="tag">🤖 Робот</span>`;
 }
-// Камера летить за кулею учня: куля стоїть на ME_X ширини неба, а земля, хмари й робот рухаються відносно неї.
-// Відстань — у знаках (1 правильний знак = 1 метр), на екрані знак займає ширину неба / VIEW_CHARS пікселів.
-// Стартова щогла стоїть на MAST_AT метрів позаду старту
-const ME_X = .25, VIEW_CHARS = 70, MAST_AT = -4;
-function drawFlight(dist, h, botDist, botH, wind){
+// Камера пливе за човном учня: човен стоїть на ME_X ширини сцени, а вода, берег, хмари й робот рухаються відносно нього.
+// Відстань — у знаках (1 правильний знак = 1 метр), на екрані знак займає ширину сцени / VIEW_CHARS пікселів.
+// Берег далеко — пливе вдвічі повільніше за воду, хмари — ще повільніше; flow — течія: хвилі пливуть і тоді,
+// коли човен стоїть. Стартовий буй стоїть на MAST_AT метрів позаду старту
+const ME_X = .25, VIEW_CHARS = 70, MAST_AT = -8;
+function drawRace(dist, botDist, flow){
   const w = trackEl.clientWidth, px = w / VIEW_CHARS, meX = w * ME_X;
-  groundEl.style.backgroundPositionX = `${-dist * px}px`;
-  cloudsEl.style.backgroundPositionX = `${-(dist * px * .35 + wind)}px`;   // хмари далеко — рухаються повільніше за землю
+  waterEl.style.backgroundPositionX = `${-(dist * px + flow)}px, 0px`;
+  groundEl.style.backgroundPositionX = `${-dist * px * .5}px`;
+  cloudsEl.style.backgroundPositionX = `${-(dist * px * .2 + flow * .3)}px`;
   mastEl.style.left = `${meX + (MAST_AT - dist) * px}px`;
-  balMe.style.left = `${meX}px`;
-  balMe.style.setProperty('--h', h);
+  boatMe.style.left = `${meX}px`;
   // Робот за краєм екрана притиснутий до краю й напівпрозорий
-  const half = balBot.offsetWidth / 2 + 4, x = meX + (botDist - dist) * px;
-  balBot.classList.toggle('far', x < half || x > w - half);
-  balBot.style.left = `${Math.min(w - half, Math.max(half, x))}px`;
-  balBot.style.setProperty('--h', botH);
+  const half = boatBot.offsetWidth / 2 + 4, x = meX + (botDist - dist) * px;
+  boatBot.classList.toggle('far', x < half || x > w - half);
+  boatBot.style.left = `${Math.min(w - half, Math.max(half, x))}px`;
 }
-// Перед стартом: обидві кулі біля щогли, учень нижче, робот вище
-const parkBalloons = () => drawFlight(0, LIFT.start, 0, BOT_H, 0);
-// Вогонь пальника спалахує на мить — після кожної правильної літери (у робота — після кожного його знака)
-function burn(el){
-  el.classList.add('burn');
-  clearTimeout(el._burn);
-  el._burn = setTimeout(()=>el.classList.remove('burn'), 350);
-}
+// Перед стартом: обидва човни біля буя
+const parkBoats = () => drawRace(0, 0, 0);
 
-// Під час польоту небо стискається (до 55% висоти), щоб панель із текстом і клавіатурою вміщалась у вікно.
-// Більше вікно — небо знову росте
-const FIT_VARS = ['--bal-w', '--sky-h', '--ground-h'];
+// Під час запливу сцена стискається (до 55% висоти), щоб панель із текстом і клавіатурою вміщалась у вікно.
+// Більше вікно — сцена знову росте
+const FIT_VARS = ['--boat-w', '--sky-h', '--ground-h', '--water-h'];
 function fitTrack(){
   FIT_VARS.forEach(v=>trackEl.style.removeProperty(v));
   trackEl.classList.remove('compact');
   if(raceEl.hidden) return;
-  const [bal, sky, ground] = FIT_VARS.map(v=>parseFloat(getComputedStyle(trackEl).getPropertyValue(v)));
+  const [boat, sky, ground, water] = FIT_VARS.map(v=>parseFloat(getComputedStyle(trackEl).getPropertyValue(v)));
   const over = raceEl.offsetTop + raceEl.offsetHeight + 12 - innerHeight;
   if(over <= 0) return;
   const k = Math.max(.55, 1 - over / sky);
   trackEl.style.setProperty('--sky-h', sky * k + 'px');
   trackEl.style.setProperty('--ground-h', ground * k + 'px');
-  trackEl.style.setProperty('--bal-w', bal * Math.max(.75, k) + 'px');
-  trackEl.classList.toggle('compact', sky * k < 190);   // низьке небо — назва регіону заважала б таймеру
+  trackEl.style.setProperty('--water-h', water * k + 'px');
+  trackEl.style.setProperty('--boat-w', boat * Math.max(.75, k) + 'px');
+  trackEl.classList.toggle('compact', sky * k < 190);   // низька сцена — назва траси заважала б таймеру
 }
-addEventListener('resize', ()=>{ fitTrack(); if(!race) parkBalloons(); });
+addEventListener('resize', ()=>{ fitTrack(); if(!race) parkBoats(); });
 
-/* ================= Гараж ================= */
+/* ================= Причал ================= */
 const setupEl = document.getElementById('setup');
 const raceEl = document.getElementById('race');
-// текст польоту переноситься по-різному — висота панелі змінюється; під час самого польоту траса лишається незмінною
+// текст запливу переноситься по-різному — висота панелі змінюється; під час самого запливу сцена лишається незмінною
 new ResizeObserver(()=>{ if(!race || race.phase === 'countdown') fitTrack(); }).observe(raceEl);
 
 function seg(el, items, cur, onPick){
@@ -1566,46 +1595,61 @@ function seg(el, items, cur, onPick){
   el.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>onPick(b.dataset.id)));
 }
 function trackPreview(t){
-  return `<div class="track-prev" style="--g:${t.ground.replace(/"/g,"'")}; --s1:${t.sky[0]}; --s2:${t.sky[1]}"></div>`;
+  return `<div class="track-prev" style="--g:${t.ground.replace(/"/g,"'")}; --s1:${t.sky[0]}; --s2:${t.sky[1]}; --w1:${t.water[0]}; --w2:${t.water[1]}"></div>`;
 }
 
 function renderSetup(){
-  if(!isOpen('track', settings.track)) settings.track = 'kyiv';
-  if(!isOpen('balloon', settings.model)) settings.model = 'classic';
+  if(!isOpen('track', settings.track)) settings.track = 'dnipro';
+  if(!isOpen('boat', settings.model)) settings.model = 'rowboat';
+  if(!pennantOpen(settings.flag)) settings.flag = 'ua';
   settings.badge = earnedBadges(profile).pop() || '';   // біля імені — бейджик найскладнішого виграного змагання
 
   renderHUD();
 
+  // Траса: картка вибирає її, кнопка «i» відкриває довідку (і для ще закритої траси — почитати можна завжди)
   const tc = document.getElementById('trackCards');
   tc.innerHTML = TRACKS.map(t=>{
     const open = isOpen('track', t.id);
-    return `<button type="button" class="pick${t.id===settings.track?' on':''}" data-id="${t.id}" ${open?'':'disabled'}>
+    return `<div class="pick-wrap"><button type="button" class="pick${t.id===settings.track?' on':''}" data-id="${t.id}" ${open?'':'disabled'}>
       ${trackPreview(t)}<span class="label">${open ? t.emoji : '🔒'} ${t.name}</span>
       ${open ? '' : `<small>${NEURON} ${unlockAt('track', t.id)}</small>`}
-    </button>`;
+    </button><button type="button" class="info-btn" data-info="${t.id}" title="Довідка: ${t.name}" aria-label="Довідка: ${t.name}">i</button></div>`;
   }).join('');
   tc.querySelectorAll('.pick').forEach(b=>b.addEventListener('click', ()=>{ settings.track=b.dataset.id; renderSetup(); }));
 
-  const cc = document.getElementById('balCards');
-  cc.innerHTML = BALLOON_ORDER.map(id=>{
-    const open = isOpen('balloon', id);
+  const cc = document.getElementById('boatCards');
+  cc.innerHTML = BOAT_ORDER.map(id=>{
+    const open = isOpen('boat', id);
     return `<button type="button" class="pick${id===settings.model?' on':''}${open?'':' locked'}" data-id="${id}" ${open?'':'disabled'}>
-      <span class="bal-prev">${balloonSVG(id, balloonColor(id), 'me')}</span><span class="label">${open?'':'🔒 '}${BALLOONS[id].name}</span>
-      ${open ? '' : `<small>${NEURON} ${unlockAt('balloon', id)}</small>`}
+      <span class="bal-prev">${boatSVG(id, boatColor(id), 'me')}</span><span class="label">${open?'':'🔒 '}${BOATS[id].name}</span>
+      ${open ? '' : `<small>${NEURON} ${unlockAt('boat', id)}</small>`}
     </button>`;
   }).join('');
   cc.querySelectorAll('.pick').forEach(b=>b.addEventListener('click', ()=>{ settings.model=b.dataset.id; renderSetup(); }));
 
   const sw = document.getElementById('swatches');
-  sw.innerHTML = COLORS.map(c=>`<button type="button" class="swatch${c===balloonColor(settings.model)?' on':''}" style="background:${c}" data-c="${c}" aria-label="Колір кулі"></button>`).join('');
+  sw.innerHTML = COLORS.map(c=>`<button type="button" class="swatch${c===boatColor(settings.model)?' on':''}" style="background:${c}" data-c="${c}" aria-label="Колір"></button>`).join('');
   sw.querySelectorAll('.swatch').forEach(b=>b.addEventListener('click', ()=>{ settings.colors[settings.model] = b.dataset.c; renderSetup(); }));
+
+  // Прапорці: закритий підказує, яка наліпка його відкриває
+  const fp = document.getElementById('flagPicks');
+  fp.innerHTML = PENNANT_ORDER.map(id=>{
+    const open = pennantOpen(id), st = STICKERS.find(x=>x.id === PENNANTS[id].sticker);
+    return `<button type="button" class="flag-pick${id===settings.flag?' on':''}${open?'':' locked'}" data-f="${id}"
+      title="${PENNANTS[id].name}${open ? '' : ` — відкриває наліпка «${st.name}»`}" aria-label="Прапорець ${PENNANTS[id].name}">${pennantSVG(id)}</button>`;
+  }).join('');
+  fp.querySelectorAll('.flag-pick').forEach(b=>b.addEventListener('click', ()=>{
+    const id = b.dataset.f;
+    if(!pennantOpen(id)){ const st = STICKERS.find(x=>x.id === PENNANTS[id].sticker); showToast(`🔒 Прапорець «${PENNANTS[id].name}» відкриває наліпка ${st.ico} «${st.name}»`, 2600); return; }
+    settings.flag = id; renderSetup();
+  }));
 
   seg(document.getElementById('segLang'), LANGS, settings.lang, id=>{ settings.lang=id; renderSetup(); });
 
 
   applyTrack(settings.track);
-  drawBalloons();
-  parkBalloons();
+  drawBoats();
+  parkBoats();
   renderPlayerBtn();
   renderComps();
   renderStickers();
@@ -1624,7 +1668,7 @@ function showTab(id){
   startBtn.disabled = false;
   if(id === 'paneComp'){ renderCompPane(); previewComp(); startBar.hidden = false; }
   else if(id === 'paneComps'){ renderComps(); startBar.hidden = true; }
-  else { applyTrack(settings.track); drawBalloons(); parkBalloons(); startBar.hidden = false; }
+  else { applyTrack(settings.track); drawBoats(); parkBoats(); startBar.hidden = false; }
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(!t.classList.contains('on')) showTab(t.dataset.tab); }));
 
@@ -1647,12 +1691,12 @@ const KEY_ICON = `<svg class="key-ico" viewBox="0 0 24 24" aria-hidden="true"><r
   <rect x="5.5" y="5.5" width="13" height="10.5" rx="2.5" fill="#fff"/><rect x="9" y="18" width="6" height="1.4" rx=".7" fill="#6C5CE7"/></svg>`;
 const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
 let toastTimer = 0;
-function showToast(text){
+function showToast(text, ms = 1600){
   const t = document.getElementById('toast');
   t.textContent = text;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 1600);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), ms);
 }
 
 /* ================= Повний екран ================= */
@@ -1685,8 +1729,8 @@ const runOf = c => profile.runs[c.id] || { stage:0, results:[] };
 // Суперник наступного етапу: норматив або, якщо учень швидший, робот під учня (botFor; день робота не показуємо)
 function compRules(c){
   const stage = c.stages[Math.min(runOf(c).stage, c.stages.length - 1)];
-  const bot = botFor(paceOf(stage[1], stageLevel(stage)), compBalloon(c), c.cpm, false);
-  const tip = bot.paced ? `Суперник наступного етапу летить під твою швидкість (норматив ${c.cpm} зн/хв)` : 'Швидкість суперника';
+  const bot = botFor(paceOf(stage[1], stageLevel(stage)), compBoat(c), c.cpm, false);
+  const tip = bot.paced ? `Суперник наступного етапу пливе під твою швидкість (норматив ${c.cpm} зн/хв)` : 'Швидкість суперника';
   return `<span title="${tip} · мінімальна точність етапу">${KEY_ICON} ${bot.cpm} зн/хв · 🎯 від ${c.minAcc}%</span>`;
 }
 function setJoined(id){
@@ -1709,7 +1753,7 @@ function switchComp(id){
 function joinComp(id){
   if(!switchComp(id)) return;
   showTab('paneComp');
-  window.scrollTo({ top:0, behavior:'smooth' });       // щоб було видно небо й «На старт!»
+  window.scrollTo({ top:0, behavior:'smooth' });       // щоб було видно річку й «На старт!»
 }
 function leaveComp(){
   setJoined(null);
@@ -1721,15 +1765,15 @@ function renderCompTab(){
   tab.hidden = !c;
   if(c) tab.innerHTML = `${badgeHTML(c.badge)} ${c.name}`;
 }
-// Регіон і куля наступного етапу
+// Траса й плавзасіб наступного етапу
 function previewComp(){
   const c = compById(selComp);
   if(!c) return;
-  const car = compBalloon(c);
+  const car = compBoat(c);
   applyTrack(c.stages[Math.min(runOf(c).stage, c.stages.length - 1)][0]);
-  drawBalloons(car || settings.model);
-  parkBalloons();
-  startBtn.disabled = !car;   // кулю для змагання ще не відкрито
+  drawBoats(car || settings.model);
+  parkBoats();
+  startBtn.disabled = !car;   // плавзасіб для змагання ще не відкрито
 }
 function renderCompPane(){
   const c = compById(selComp);
@@ -1747,14 +1791,14 @@ function renderCompPane(){
     </div>
     <div class="cp-info">
       <span class="comp-rules">${compRules(c)}
-        ${c.balloons ? `<span class="comp-bals">${c.balloons.map(id=>{ const open = isOpen('balloon', id);
-          return `<span class="comp-bal${open ? '' : ' locked'}">${balloonSVG(id, open ? balloonColor(id) : '#999', 'me')}${BALLOONS[id].name}</span>`; }).join('')}</span>` : ''}</span>
+        ${c.boats ? `<span class="comp-bals">${c.boats.map(id=>{ const open = isOpen('boat', id);
+          return `<span class="comp-bal${open ? '' : ' locked'}">${boatSVG(id, open ? boatColor(id) : '#999', 'me')}${BOATS[id].name}</span>`; }).join('')}</span>` : ''}</span>
       <span class="cp-progress"><span class="bar"><i style="width:${done/n*100}%"></i></span>${done} з ${n}</span>
     </div>
     <div class="table-scroll"><table class="res-table stage-table"><tbody>
       ${c.stages.map((stage, k)=>{ const [track, lang] = stage, t = TRACKS[trackIdx(track)], x = run.results[k];
         const res = x ? `${fmtTime(x[0])} · ${x[1]} зн/хв · ${x[2]}% · ${x[3] ? '<span class="won">Перемога</span>' : '2 місце'}`
-                      : k === done ? `<span class="next-bal" title="Наступний етап">${balloonSVG(compBalloon(c) || settings.model, balloonColor(compBalloon(c) || settings.model), 'me')}</span>` : '';
+                      : k === done ? `<span class="next-bal" title="Наступний етап">${boatSVG(compBoat(c) || settings.model, boatColor(compBoat(c) || settings.model), 'me')}</span>` : '';
         return `<tr class="${x ? 'done' : k === done ? 'next' : 'todo'}"><td>${k+1}</td><td>${t.emoji} ${t.name}</td>
           <td>${LANG_FLAG[lang]} ${LEVEL_NAME[stageLevel(stage)]}</td><td>${res}</td></tr>`; }).join('')}
     </tbody></table></div>
@@ -1776,8 +1820,8 @@ function renderCompPane(){
 // з участю — показує результати, навіть незавершені (#c=…)
 function progressLink(c){
   const run = profile.runs[c.id], best = profile.comps[c.id];
-  const res = run?.results.length ? { s:run.results, day:today(), m:compBalloon(c) || settings.model }
-            : best || { s:[], day:today(), m:compBalloon(c) || settings.model };
+  const res = run?.results.length ? { s:run.results, day:today(), m:compBoat(c) || settings.model }
+            : best || { s:[], day:today(), m:compBoat(c) || settings.model };
   return makeResultLink(c, res);
 }
 function bindLinkButtons(root){
@@ -1804,7 +1848,7 @@ function renderComps(){
     if(!compVisible(c)) return '';
     const best = profile.comps[c.id];
     const run = profile.runs[c.id];
-    const car = compBalloon(c);
+    const car = compBoat(c);
     const diff = diffDots(c, i);
     const chips = c.stages.map((st, k)=>stageChip(st, run && k < run.stage ? 'done' : '')).join('');
     return `<div class="comp${best?' got':''}" id="comp-${i+1}">
@@ -1813,8 +1857,8 @@ function renderComps(){
         <h4>${c.name}<button type="button" class="share-mini" data-link="${i+1}" title="Поділитися змаганням">${LINK_ICON}</button></h4></div></div>
       <div class="stages">${chips}</div>
       <div class="comp-rules">${compRules(c)}
-        ${c.balloons ? `<span class="comp-bals">${c.balloons.map(id=>{ const open = isOpen('balloon', id);
-          return `<span class="comp-bal${open ? '' : ' locked'}">${balloonSVG(id, open ? balloonColor(id) : '#999', 'me')}${BALLOONS[id].name}</span>`; }).join('')}</span>` : ''}</div>
+        ${c.boats ? `<span class="comp-bals">${c.boats.map(id=>{ const open = isOpen('boat', id);
+          return `<span class="comp-bal${open ? '' : ' locked'}">${boatSVG(id, open ? boatColor(id) : '#999', 'me')}${BOATS[id].name}</span>`; }).join('')}</span>` : ''}</div>
       ${best || run?.results.length ? `<button type="button" class="share-ico" data-prog="${c.id}" title="Поділитися результатами">${LINK_ICON}</button>` : ''}
       <div class="comp-foot">
         ${medalsHTML(c)}
@@ -1901,7 +1945,7 @@ function flashKey(ch){
 }
 
 
-/* ================= Політ ================= */
+/* ================= Заплив ================= */
 const textBox = document.getElementById('textBox');
 const textLines = document.getElementById('textLines');
 const typer = document.getElementById('typer');
@@ -1917,7 +1961,7 @@ function shuffle(a){
 }
 
 
-// Політ триває RACE_SEC секунд, тож текст не закінчується: спершу — приблизно на хвилину для швидшого з двох
+// Заплив триває RACE_SEC секунд, тож текст не закінчується: спершу — приблизно на хвилину для швидшого з двох
 // (учня з його звичною швидкістю pace чи робота), а коли до кінця лишається TEXT_MORE знаків, додаємо ще
 const TEXT_MORE = 30;
 function makeText(lang, level, pace = 0, bot = 0){
@@ -1972,11 +2016,10 @@ function startRace(opts){
     pos:0, errors:0, missed:false, streak:0, topStreak:0, phase:'countdown', startT:0, lastKeyT:0, noBot:!!opts.noBot,
     botCpm:opts.cpm, botChars:0, botFair:0, rate:0, seed:Math.random()*10, lastFrame:0,
     assist:!opts.day && (opts.paced || !BOOST && !opts.comp?.pro), assistK:1, botDelay:BOOST || opts.comp?.pro ? 0 : ASSIST.delay,
-    // висота кулі: поріг темпу lift, «тепло» пальника heat (зн/хв), найвища висота за політ, приземлення
-    lift: Math.max(LIFT.minCpm, pace * LIFT.ratio), h:LIFT.start, maxH:LIFT.start, landed:false, lowTip:false, view:0, wind:0,
+    // човен учня: view — де його показує камера, flow — течія; maxGap — найдовша зупинка між правильними літерами, мс
+    view:0, flow:0, maxGap:0, idleTip:false,
     hold:{ focus:false, alert:false, pause:false }   // пауза: сторінка без фокусу, підказка про мову чи Caps Lock або кнопка ⏸
   };
-  race.heat = race.lift;
   setupEl.hidden = true;
   shareView.hidden = true;
   startBar.hidden = true;
@@ -1984,10 +2027,11 @@ function startRace(opts){
   raceEl.classList.remove('paused');
   applyTrack(opts.track);
   buildKeyboard();
-  drawBalloons(opts.model);
-  balMe.classList.remove('low', 'burn', 'bump');
-  balBot.hidden = race.noBot;
-  parkBalloons();
+  drawBoats(opts.model);
+  boatMe.classList.remove('moving', 'bump');
+  boatBot.classList.remove('moving');
+  boatBot.hidden = race.noBot;
+  parkBoats();
   timerEl.hidden = false;
   updateTimer(0);
   const c = race.comp;
@@ -1995,7 +2039,7 @@ function startRace(opts){
     ? `🏆 ${c.name} · етап ${profile.runs[c.id].stage + 1}/${c.stages.length} · 🎯 від ${c.minAcc}%`
     : race.drill ? `🎯 Тренування клавіш: ${race.drill.map(keyName).join(', ')}` : '';
   const notes = [BOOST && 'нормативи 5–7 класів'];
-  if(!c && !race.drill) notes.push(TEACHER.noBot ? 'політ без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
+  if(!c && !race.drill) notes.push(TEACHER.noBot ? 'заплив без робота' : TEACHER.cpm && `робот ${TEACHER.cpm} зн/хв`);
   document.getElementById('teacherNote').textContent = notes.some(Boolean) ? 'Налаштування вчителя: ' + notes.filter(Boolean).join(' · ') : '';
   renderText();
   spans[0].classList.add('cur');
@@ -2021,18 +2065,18 @@ function drillText(lang, keys){
   return shuffle(words).join(' ');
 }
 function startDrill(lang, keys){
-  startRace({ track:settings.track, lang, cpm:BALLOON_CPM[settings.model], model:settings.model, noBot:true, level:'drill', drill:keys,
+  startRace({ track:settings.track, lang, cpm:BOAT_CPM[settings.model], model:settings.model, noBot:true, level:'drill', drill:keys,
               text:drillText(lang, keys), more:()=>drillText(lang, keys) });
 }
 function startFree(){
   const level = TRACK_LEVEL[settings.track];
   const p = TEACHER.cpm ? 0 : paceOf(settings.lang, level, true);
-  const bot = botFor(p, settings.model, TEACHER.cpm || (p ? 3 : BALLOON_CPM[settings.model]), !!p && !TEACHER.noBot && rollRobotDay());
+  const bot = botFor(p, settings.model, TEACHER.cpm || (p ? 3 : BOAT_CPM[settings.model]), !!p && !TEACHER.noBot && rollRobotDay());
   startRace({ track:settings.track, lang:settings.lang, cpm:bot.cpm, paced:bot.paced, day:bot.day, model:settings.model, noBot:TEACHER.noBot });
 }
 function startComp(id){
   const c = compById(id);
-  const car = compBalloon(c);
+  const car = compBoat(c);
   if(!car) return;
   if(selComp !== id) setJoined(id);
   profile.runs[id] ||= { stage:0, results:[] };
@@ -2053,7 +2097,7 @@ function runCountdown(){
     ()=>{ lamps[0].className='red'; num.textContent='3'; tone(440,.15,'square',.05); },
     ()=>{ lamps[1].className='yellow'; num.textContent='2'; tone(440,.15,'square',.05); },
     ()=>{ lamps[2].className='yellow'; num.textContent='1'; tone(440,.15,'square',.05); },
-    ()=>{ lamps.forEach(l=>l.className='green'); num.textContent='Злітай!'; tone(880,.35,'square',.06); go(); }
+    ()=>{ lamps.forEach(l=>l.className='green'); num.textContent='Пливемо!'; tone(880,.35,'square',.06); go(); }
   ];
   const id = race.id = Symbol();
   steps.forEach((fn, i)=>setTimeout(()=>{ if(race && race.id===id) fn(); }, i*750));
@@ -2065,21 +2109,16 @@ function go(){
   race.startT = performance.now();
   race.lastFrame = race.startT;
   typer.value = '';
-  trackEl.classList.add('flying');
   rafId = requestAnimationFrame(loop);
 }
 
-// Політ: RACE_SEC секунд; перемагає той, хто пролетів далі (1 правильний знак = 1 метр).
-// Висота кулі h: 0 — земля, 1 — найвище. Кожна правильна літера підігріває пальник: heat — темп друку в зн/хв,
-// що згасає за tau секунд. Темп вищий за поріг (ratio від звичної швидкості учня, але не нижче minCpm) — куля
-// піднімається (до rise за секунду, не вище top), нижчий — знижується (до fall за секунду). Тепло не вище за cap порогів,
-// тож після зупинки куля починає знижуватись за кілька секунд. Перші grace секунд куля не знижується.
-// Учень зупинився зовсім — із висоти start до землі приблизно 6 с, з найвищої — приблизно 12 с. Нижче low — підказка
+// Заплив: RACE_SEC секунд; перемагає той, хто пропливе далі (1 правильний знак = 1 метр).
+// Зупинка — не програш: човен плавно гальмує (камера доганяє його з GLIDE за секунду) і стоїть, доки учень не продовжить.
+// Без правильної літери IDLE_TIP секунд — підказка; жодна зупинка не довша за NONSTOP мс — наліпка «Повний хід»
 const RACE_SEC = 60;
-const LIFT = { start:.42, top:.9, rise:.12, fall:.11, tau:3, ratio:.5, minCpm:8, cap:2, grace:3, low:.25 };
-const BOT_H = .86;   // робот летить рівно на цій висоті, лише трохи погойдується
+const GLIDE = 2.5, IDLE_TIP = 3, NONSTOP = 3000;
 // Робот поруч: botFair — «чесна» дистанція робота, як у «Клавіатурних перегонах» (швидкість під учня, пригальмовування),
-// botChars — де робот на екрані. Посеред польоту робот тримається біля кулі учня (або біля botFair, якщо учень
+// botChars — де робот на екрані. Посеред запливу робот тримається біля човна учня (або біля botFair, якщо учень
 // зупинився) і то відстає, то обганяє: хвиля з амплітудою amp секунд друку учня (від ampMin до ampMax метрів)
 // і періодом period секунд, що з'являється за ramp секунд після старту. За settle[0]–settle[1] секунд до фінішу
 // робот повертається до botFair, тож переможця, як і раніше, вирішує звична швидкість учня. Швидкість робота —
@@ -2093,7 +2132,7 @@ function loop(now){
   const raw = now - race.lastFrame;
   const dt = Math.min(0.25, raw / 1000);
   race.lastFrame = now;
-  if(race.hold.focus || race.hold.alert || race.hold.pause){   // пауза: годинник, робот і куля стоять
+  if(race.hold.focus || race.hold.alert || race.hold.pause){   // пауза: годинник, робот і човен стоять
     race.startT += raw;
     if(race.lastKeyT) race.lastKeyT += raw;
     rafId = requestAnimationFrame(loop);
@@ -2113,7 +2152,7 @@ function loop(now){
     race.rate *= Math.exp(-dt / CHASE.tau);
     if(t >= race.botDelay){
       race.botFair += race.botCpm / 60 * dt * k * race.assistK;
-      // Робот на екрані: біля кулі учня з хвилею, наприкінці — на чесній дистанції
+      // Робот на екрані: біля човна учня з хвилею, наприкінці — на чесній дистанції
       const v = Math.max(race.rate, race.botCpm * .5) / 60;   // темп учня, метрів за секунду
       const amp = Math.min(CHASE.ampMax, Math.max(CHASE.ampMin, v * CHASE.amp));
       const wave = amp * Math.sin(2 * Math.PI * t / CHASE.period + race.seed) * clamp01((t - CHASE.ramp[0]) / (CHASE.ramp[1] - CHASE.ramp[0]));
@@ -2121,28 +2160,18 @@ function loop(now){
       const end = clamp01((t - RACE_SEC + CHASE.settle[0]) / (CHASE.settle[0] - CHASE.settle[1]));
       const target = mid + (race.botFair - mid) * end;
       const speed = Math.min(v * CHASE.max, Math.max(v * CHASE.min, v + (target - race.botChars) * CHASE.gain));
-      const before = race.botChars;
       race.botChars += speed * dt;
-      if(Math.floor(race.botChars) > Math.floor(before)) burn(balBot);
     }
   }
-  // Висота кулі учня
-  race.heat *= Math.exp(-dt / LIFT.tau);
-  const d = (race.heat - race.lift) / race.lift;
-  let v = d >= 0 ? LIFT.rise * Math.min(1, d) : LIFT.fall * Math.max(-1, d);
-  if(t < LIFT.grace) v = Math.max(0, v);
-  race.h = Math.max(0, Math.min(LIFT.top, race.h + v * dt));
-  race.maxH = Math.max(race.maxH, race.h);
-  const low = race.h < LIFT.low && v < 0;
-  balMe.classList.toggle('low', low);
-  if(low && !race.lowTip){ race.lowTip = true; showTip('⬇️ Куля знижується — друкуй!'); }
-  if(race.h > LIFT.low + .1) race.lowTip = false;
-  race.view += (race.pos - race.view) * Math.min(1, dt * 4);   // камера м'яко доганяє кулю після кожної літери
-  race.wind += dt * 8;                                          // хмари пливуть за вітром, пікселів за секунду
-  const bob = race.h > .05 ? .012 * Math.sin(t * 1.4) : 0;
-  drawFlight(race.view, race.h + bob, race.botChars, BOT_H + .025 * Math.sin(t * 1.1 + race.seed), race.wind);
+  // Човен учня: камера м'яко доганяє його після кожної літери, тож зупинка — плавне гальмування
+  race.view += (race.pos - race.view) * Math.min(1, dt * GLIDE);
+  race.flow += dt * 12;   // течія: хвилі пливуть, навіть коли човен стоїть, пікселів за секунду
+  const idle = (now - Math.max(race.lastKeyT, race.startT)) / 1000;
+  boatMe.classList.toggle('moving', !!race.lastKeyT && idle < 1.5);
+  boatBot.classList.toggle('moving', !race.noBot && t >= race.botDelay);
+  if(idle > IDLE_TIP && !race.idleTip){ race.idleTip = true; showTip('🛶 Човен зупинився — друкуй, щоб пливти!'); }
+  drawRace(race.view, race.botChars, race.flow);
   updateTimer(t);
-  if(race.h <= 0){ race.landed = true; return finish(); }
   if(t >= RACE_SEC) return finish();
   rafId = requestAnimationFrame(loop);
 }
@@ -2170,7 +2199,7 @@ function showTip(msg){
   tipTimer = setTimeout(()=>tipEl.hidden = true, 3500);
 }
 
-// Не та мова чи Caps Lock: велика картка з інструкцією поверх клавіатури; політ стоїть, доки учень не натисне правильну літеру
+// Не та мова чи Caps Lock: велика картка з інструкцією поверх клавіатури; заплив стоїть, доки учень не натисне правильну літеру
 const alertEl = document.getElementById('alert');
 let capsOn = null;   // справжній стан Caps Lock з останнього натискання (null — невідомо, наприклад на планшеті)
 function showAlert(kind){
@@ -2234,11 +2263,12 @@ function handleChar(ch){
     spans[race.pos].classList.add('ok');
     if(race.missed) spans[race.pos].classList.add('miss');
     race.missed = false;
+    const now = performance.now();
+    race.maxGap = Math.max(race.maxGap, now - Math.max(race.lastKeyT, race.startT));
     race.pos++;
-    race.lastKeyT = performance.now();
-    race.heat = Math.min(race.lift * LIFT.cap, race.heat + 60 / LIFT.tau);   // пальник підігріває кулю
+    race.lastKeyT = now;
+    race.idleTip = false;
     race.rate += 60 / CHASE.tau;
-    burn(balMe);
     if(race.text.length - race.pos < TEXT_MORE) extendText();
     if(++race.streak % STREAK_STEP === 0) praise(race.streak);
     race.topStreak = Math.max(race.topStreak, race.streak);
@@ -2258,7 +2288,7 @@ function handleChar(ch){
   const s = spans[race.pos];
   s.classList.remove('err'); void s.offsetWidth; s.classList.add('err');
   setTimeout(()=>s.classList.remove('err'), 220);
-  balMe.classList.remove('bump'); void balMe.offsetWidth; balMe.classList.add('bump');   // помилка тяги не дає, куля лише хитається
+  boatMe.classList.remove('bump'); void boatMe.offsetWidth; boatMe.classList.add('bump');   // помилка човна не штовхає, він лише хитається
   tone(150, .09, 'square', .04);
   updateStats(performance.now());
 }
@@ -2268,7 +2298,7 @@ typer.addEventListener('input', ()=>{
   typer.value = '';
   for(const ch of v) handleChar(ch);
 });
-// Фокус: поки йде політ, усі натискання мають потрапляти в поле для друку.
+// Фокус: поки йде заплив, усі натискання мають потрапляти в поле для друку.
 // Фокус пішов в інше місце сторінки — повертаємо мовчки. Пауза з великою підказкою — лише коли
 // сторінка зовсім втратила фокус (інше вікно, рядок адреси) або на планшеті сховалась клавіатура
 const isTouch = matchMedia('(pointer: coarse)').matches;
@@ -2310,23 +2340,22 @@ function finish(){
   const now = performance.now();
   race.phase = 'done';
   cancelAnimationFrame(rafId);
-  balMe.classList.remove('low', 'burn');
+  boatMe.classList.remove('moving'); boatBot.classList.remove('moving');
   tipEl.hidden = true;
   showNextKey(undefined);
-  const solo = race.noBot;                // політ без робота: просто фініш
-  const landed = race.landed;             // куля сіла на землю до фінішу
+  const solo = race.noBot;                // заплив без робота: просто фініш
   const typed = race.pos, botDist = Math.floor(race.botChars);
-  const won = !solo && !landed && typed > botDist;   // долетів і пролетів далі за робота
+  const won = !solo && typed > botDist;   // проплив далі за робота
   const sec = Math.min(RACE_SEC, (now - race.startT) / 1000);
   const speed = Math.round(typed / Math.max(1, sec) * 60);
   const acc = typed ? Math.round(typed / (typed + race.errors) * 100) : 0;
-  const stars = landed ? 1 : won || solo ? 2 + (acc >= (BOOST ? 95 : 90) ? 1 : 0) : 1;
+  const stars = won || solo ? 2 + (acc >= (BOOST ? 95 : 90) ? 1 : 0) : 1;
   const key = bestKey(race.lang, race.track);
   const prevBest = profile.bests[key] || 0;
-  const record = (won || solo) && speed > prevBest;  // рекорд — лише за долетілий до фінішу політ
+  const record = (won || solo) && speed > prevBest;  // рекорд — лише за виграний заплив
   if(record) profile.bests[key] = speed;
   profile.races++;
-  if(!race.drill){   // швидкість по днях — для графіка в профілі: [сума швидкостей, польотів, найкраща]
+  if(!race.drill){   // швидкість по днях — для графіка в профілі: [сума швидкостей, запливів, найкраща]
     const h = (profile.hist ||= {})[today()] ||= [0, 0, 0];
     h[0] += speed; h[1]++; h[2] = Math.max(h[2], speed);
     if(typed >= PACE_EMA.minChars) updatePace(race.lang, race.level, speed);   // під цю швидкість підлаштується робот
@@ -2336,10 +2365,9 @@ function finish(){
   if(proNow) profile.pro = true;
 
   // Нейрончики
-  const nb = neuronsFor({ track:race.track, speed, errors:race.errors, acc, won, landed, flown: landed ? sec / RACE_SEC : 1, faster: !landed && race.pace && speed > race.pace });
+  const nb = neuronsFor({ track:race.track, speed, errors:race.errors, acc, won, typed, faster: race.pace && speed > race.pace });
   let gain = nb.total;
-  const parts = [`регіон +${nb.base}`, `політ +${nb.ride}`, `точність ×${nb.mult}`];
-  if(landed) parts.push(`у повітрі ${Math.round(sec)} с з ${RACE_SEC}`);
+  const parts = [`траса +${nb.base}`, `заплив +${nb.ride}`, `точність ×${nb.mult}`];
   if(nb.win) parts.push(`перемога +${nb.win}`);
   if(nb.faster) parts.push(`швидше, ніж зазвичай +${nb.faster}`);
 
@@ -2348,7 +2376,7 @@ function finish(){
   let bigWin = false;   // змагання завершено — найбільше свято
   const c = race.comp;
   againAction = startFree;
-  let againLabel = '🎈 Ще політ';
+  let againLabel = '🚣 Ще заплив';
   if(c){
     const run = profile.runs[c.id];
     const n = c.stages.length;
@@ -2380,7 +2408,7 @@ function finish(){
         againLabel = `▶ Далі: ${TRACKS[trackIdx(c.stages[run.stage][0])].name}`;
       }
     } else {
-      compHTML = `<div class="comp-box fail step">${landed ? 'Треба протриматися в повітрі до фінішу' : won ? `Потрібна точність від ${c.minAcc}%` : 'Треба пролетіти далі за робота'}</div>`;
+      compHTML = `<div class="comp-box fail step">${won ? `Потрібна точність від ${c.minAcc}%` : 'Треба пропливти далі за робота'}</div>`;
       againAction = ()=>startComp(c.id);
       againLabel = '↻ Ще раз';
     }
@@ -2391,18 +2419,20 @@ function finish(){
   profile.neurons += gain;
   const opened = UNLOCKS.filter(u=>u.at > before && u.at <= profile.neurons);
   // Наліпки
-  const run = { won, landed, typed, errors:race.errors, topStreak:race.topStreak, top:race.maxH >= LIFT.top - .01, newRecord:record && prevBest > 0, drill:!!race.drill };
+  const gap = Math.max(race.maxGap, now - Math.max(race.lastKeyT, race.startT));   // і зупинка перед самим фінішем
+  const run = { won, typed, errors:race.errors, topStreak:race.topStreak, nonstop: typed >= PACE_EMA.minChars && gap <= NONSTOP,
+                newRecord:record && prevBest > 0, drill:!!race.drill };
   const earned = STICKERS.filter(st=>!profile.stickers[st.id] && (st.test ? st.test(run) : st.count(profile) >= st.need));
   earned.forEach(st=>profile.stickers[st.id] = today());
+  const flagsOpened = PENNANT_ORDER.filter(id=>earned.some(st=>st.id === PENNANTS[id].sticker));
   saveStore();
   renderHUD(true);
 
   // Значок і заголовок: медалі 🥇🥈🥉 лишаємо лише для змагань, тут — без них
   const failed = c && !(won && acc >= c.minAcc);
-  document.getElementById('wBig').textContent = landed ? '🎈' : solo ? '🏁' : !won ? '🤖' : failed ? '🎯' : '🏆';
-  document.getElementById('winTitle').textContent = landed ? 'Куля приземлилась' : solo ? 'Фініш!' : !won ? 'Робот пролетів далі' : failed ? 'Етап не зараховано' : 'Перемога!';
-  document.getElementById('wSub').textContent = landed ? 'Друкуй без довгих зупинок — тоді пальник гріє й куля тримається в повітрі.'
-    : solo ? `Твоя куля пролетіла ${typed} м` : `Твоя куля — ${typed} м, робот — ${botDist} м${won ? '' : '. Наступного разу вийде!'}`;
+  document.getElementById('wBig').textContent = solo ? '🏁' : !won ? '🤖' : failed ? '🎯' : '🏆';
+  document.getElementById('winTitle').textContent = solo ? 'Фініш!' : !won ? 'Робот проплив далі' : failed ? 'Етап не зараховано' : 'Перемога!';
+  document.getElementById('wSub').textContent = solo ? `Твій човен проплив ${typed} м` : `Твій човен — ${typed} м, робот — ${botDist} м${won ? '' : '. Наступного разу вийде!'}`;
   document.getElementById('wStars').innerHTML = [1,2,3].map(i=>`<span class="${i<=stars?'':'dim'}">⭐</span>`).join('');
   document.getElementById('wSpeed').textContent = speed;
   document.getElementById('wAcc').textContent = acc + '%';
@@ -2418,17 +2448,20 @@ function finish(){
       <button type="button" class="btn btn-ghost btn-small" id="drillBtn">🎯 Потренувати</button></div>` : '';
   if(weak.length){ const lang = race.lang, keys = weak.map(([k])=>k); document.getElementById('drillBtn').addEventListener('click', ()=>startDrill(lang, keys)); }
   document.getElementById('wUnlock').innerHTML =
-    (opened.length ? `<div class="unlock"><b>🔓 Відкрито за нейрончики!</b><div class="unlock-list">${opened.map(u=>u.kind==='balloon'
-        ? `<div class="unlock-item"><div class="thumb bal">${balloonSVG(u.id, balloonColor(u.id), 'me')}</div><span>Куля <b>${BALLOONS[u.id].name}</b></span></div>`
-        : `<div class="unlock-item"><div class="thumb">${trackPreview(TRACKS[trackIdx(u.id)])}</div><span>Регіон <b>${TRACKS[trackIdx(u.id)].emoji} ${TRACKS[trackIdx(u.id)].name}</b></span></div>`).join('')}</div></div>` : '') +
+    (opened.length ? `<div class="unlock"><b>🔓 Відкрито за нейрончики!</b><div class="unlock-list">${opened.map(u=>u.kind==='boat'
+        ? `<div class="unlock-item"><div class="thumb bal">${boatSVG(u.id, boatColor(u.id), 'me')}</div><span>Плавзасіб <b>${BOATS[u.id].name}</b></span></div>`
+        : `<div class="unlock-item"><div class="thumb">${trackPreview(TRACKS[trackIdx(u.id)])}</div><span>Траса <b>${TRACKS[trackIdx(u.id)].emoji} ${TRACKS[trackIdx(u.id)].name}</b>
+            <small class="fact">${RIVERS[u.id].fact} <button type="button" class="link-btn" data-info="${u.id}">Довідка</button></small></span></div>`).join('')}</div></div>` : '') +
     (proNow ? `<div class="unlock"><b>⚡ Ти друкуєш дуже швидко! Відкрито нові змагання</b><div class="unlock-list">${COMPS.filter(c=>c.pro).map(c=>
         `<div class="unlock-item"><div class="thumb badge">${badgeHTML(c.badge)}</div><span>Змагання <b>${c.name}</b></span></div>`).join('')}</div></div>` : '') +
-    (earned.length ? `<div class="unlock"><b>🎉 ${earned.length > 1 ? 'Нові наліпки' : 'Нова наліпка'}!</b><div class="stickers">${earned.map(stickerHTML).join('')}</div></div>` : '');
+    (earned.length ? `<div class="unlock"><b>🎉 ${earned.length > 1 ? 'Нові наліпки' : 'Нова наліпка'}!</b><div class="stickers">${earned.map(stickerHTML).join('')}</div>` +
+      (flagsOpened.length ? `<div class="unlock-list">${flagsOpened.map(id=>`<div class="unlock-item"><div class="thumb pennant">${pennantSVG(id)}</div><span>Новий прапорець <b>${PENNANTS[id].name}</b></span></div>`).join('')}</div>` : '') +
+      `</div>` : '');
   document.getElementById('wUnlock').querySelectorAll('.sticker').forEach(s=>s.classList.add('new'));
 
   const againBtn = document.getElementById('againBtn');
   againBtn.textContent = againLabel;
-  // Друга кнопка: посеред змагання — до його результатів, після вільного польоту — у гараж,
+  // Друга кнопка: посеред змагання — до його результатів, після вільного запливу — на причал,
   // після завершеного змагання її немає (лишається «До змагань»)
   const midComp = c && profile.runs[c.id];
   const exitBtn = document.getElementById('toSetupBtn');
@@ -2438,7 +2471,7 @@ function finish(){
   bindLinkButtons(document.getElementById('wComp'));
 
   setTimeout(()=>{
-    if((won || solo) && !landed && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
+    if((won || solo) && !failed){ if(loud) celebrate(bigWin); else { fanfare(); confetti(); } }
     else if(loud) sadTrombone(); else tone(330, .3, 'triangle', .07);
     if(loud && (opened.length || proNow || earned.length)) sparkle(1.6);
     overlay.classList.add('show');
@@ -2458,12 +2491,11 @@ function toSetup(){
   shareView.hidden = true;
   document.body.classList.remove('ro');
   trackEl.hidden = false;
-  trackEl.classList.remove('flying');
   timerEl.hidden = true;
-  balBot.hidden = false;
+  boatBot.hidden = false;
   mastEl.hidden = false;
   setupEl.hidden = false;
-  balMe.classList.remove('low', 'burn'); balBot.classList.remove('burn', 'far');
+  boatMe.classList.remove('moving', 'bump'); boatBot.classList.remove('moving', 'far');
   renderSetup();
   showTab(activeTab());
 }
@@ -2487,11 +2519,25 @@ startBtn.addEventListener('click', ()=>activeTab() === 'paneComp' ? startComp(se
 document.getElementById('againBtn').addEventListener('click', ()=>againAction());
 document.getElementById('toSetupBtn').addEventListener('click', ()=>exitAction());
 document.getElementById('exitBtn').addEventListener('click', toSetup);
-// Esc під час польоту — повернутися в гараж
+// Esc під час запливу — повернутися на причал
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && race && !overlay.classList.contains('show')) toSetup(); });
 // Хрестик або Esc у вікні результату — як друга кнопка вікна
 document.getElementById('winClose').addEventListener('click', ()=>exitAction());
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && overlay.classList.contains('show')) exitAction(); });
+
+/* ================= Довідка про трасу ================= */
+// Кнопка «i» на картці траси чи «Довідка» на екрані результату: текст, факти й схема з rivers.js
+const riverOverlay = document.getElementById('riverOverlay');
+function openRiver(id){
+  document.getElementById('riverBody').innerHTML = riverCard(id);
+  riverOverlay.classList.add('show');
+}
+const closeRiver = ()=>riverOverlay.classList.remove('show');
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-info]'); if(b) openRiver(b.dataset.info); });
+document.getElementById('riverClose').addEventListener('click', closeRiver);
+riverOverlay.addEventListener('click', e=>{ if(e.target === riverOverlay) closeRiver(); });
+// Esc закриває спершу довідку, а вікно результату під нею лишається
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && riverOverlay.classList.contains('show')){ closeRiver(); e.stopImmediatePropagation(); } }, true);
 
 /* ================= Вибір гравця ================= */
 const nameOverlay = document.getElementById('nameOverlay');
@@ -2529,20 +2575,22 @@ function enterGame(name){
   profileOverlay.classList.remove('show');
   toSetup();
   if(pendingComp) setTimeout(openPendingComp, 100);
+  if(paceImported){ paceImported = false; showToast('🎈 Робот уже знає твою швидкість із «Повітряних перегонів»', 3500); }
 }
 
 /* ================= Профіль ================= */
 const profileOverlay = document.getElementById('profileOverlay');
-const miniBalloon = p => { const m = p.settings?.model || 'classic'; return `<span class="pb-bal">${balloonSVG(m, balloonColor(m, p.settings), 'me')}</span>`; };
+const miniBoat = p => { const m = BOATS[p.settings?.model] ? p.settings.model : 'rowboat';
+  return `<span class="pb-bal">${boatSVG(m, boatColor(m, p.settings), 'me', PENNANTS[p.settings?.flag] ? p.settings.flag : 'ua')}</span>`; };
 function renderPlayerBtn(){
-  document.getElementById('playerBal').innerHTML = balloonSVG(settings.model, balloonColor(settings.model), 'me');
+  document.getElementById('playerBal').innerHTML = boatSVG(settings.model, boatColor(settings.model), 'me');
   document.getElementById('playerName').textContent = player || 'Гравець';
 }
 
-// Графік середньої швидкості за день (останні 14 днів із польотами); підказка з деталями — при наведенні на точку
+// Графік середньої швидкості за день (останні 14 днів із запливами); підказка з деталями — при наведенні на точку
 function renderSpeedChart(el, hist){
   const days = Object.keys(hist).map(Number).sort((a, b)=>a - b).slice(-14);
-  if(days.length < 2){ el.innerHTML = `<p class="note-small">Графік з'явиться, коли будуть польоти у два різні дні.</p>`; return; }
+  if(days.length < 2){ el.innerHTML = `<p class="note-small">Графік з'явиться, коли будуть запливи у два різні дні.</p>`; return; }
   const pts = days.map(d=>({ d, avg:Math.round(hist[d][0] / hist[d][1]), n:hist[d][1], best:hist[d][2] }));
   const W = 440, H = 150, L = 34, R = 34, T = 14, B = 24;
   const top = Math.max(10, Math.ceil(Math.max(...pts.map(p=>p.avg)) * 1.15 / 10) * 10);
@@ -2560,7 +2608,7 @@ function renderSpeedChart(el, hist){
   el.querySelectorAll('[data-i]').forEach(c=>{
     c.addEventListener('mouseenter', ()=>{
       const p = pts[+c.dataset.i];
-      tip.innerHTML = `<b>${day(p.d)}</b> · середня ${p.avg} зн/хв<br>найкраща ${p.best} · польотів ${p.n}`;
+      tip.innerHTML = `<b>${day(p.d)}</b> · середня ${p.avg} зн/хв<br>найкраща ${p.best} · запливів ${p.n}`;
       tip.hidden = false;
       const f = +c.getAttribute('cx') / W;
       tip.style.left = f * 100 + '%';
@@ -2574,10 +2622,10 @@ function renderProfile(){
   document.getElementById('profShare').innerHTML =
     `<button type="button" class="share-ico" data-url="${esc(makeShareLink())}" title="Поділитися результатами">${LINK_ICON}</button>`;
   bindLinkButtons(document.getElementById('profShare'));
-  document.getElementById('profAvatar').innerHTML = balloonSVG(settings.model, balloonColor(settings.model), 'me') + badgeHTML(settings.badge);
+  document.getElementById('profAvatar').innerHTML = boatSVG(settings.model, boatColor(settings.model), 'me') + badgeHTML(settings.badge);
   document.getElementById('profTitle').textContent = player;
   document.getElementById('profStats').innerHTML =
-    `<span>${NEURON} <b>${profile.neurons}</b></span><span>польотів <b>${profile.races}</b></span>` +
+    `<span>${NEURON} <b>${profile.neurons}</b></span><span>запливів <b>${profile.races}</b></span>` +
     `<span>перемог <b>${profile.wins}</b></span><span>змагань <b>${COMPS.filter(c=>profile.comps[c.id]).length}/${COMPS.filter(c=>compVisible(c)).length}</b></span>` +
     `<span>наліпок <b>${Object.keys(profile.stickers).length}/${STICKERS.length}</b></span>`;
   renderSpeedChart(document.getElementById('profChart'), profile.hist || {});
@@ -2585,7 +2633,7 @@ function renderProfile(){
   const names = Object.keys(store.players).sort((a, b)=>a===player ? -1 : b===player ? 1 : a.localeCompare(b, 'uk'));
   list.innerHTML = names.map(n=>{
     const p = store.players[n], me = n === player;
-    return `<div class="pl-row${me ? ' me' : ''}">${miniBalloon(p)}
+    return `<div class="pl-row${me ? ' me' : ''}">${miniBoat(p)}
       <span class="pl-name">${esc(n)}<small>${NEURON} ${p.neurons || 0} · наліпок ${Object.keys(p.stickers || {}).length} з ${STICKERS.length}</small></span>
       ${me ? '<span class="pl-you">це ти</span>' : `<button type="button" class="btn btn-primary btn-small" data-play="${esc(n)}">Грати</button>`}
       <button type="button" class="pl-del" data-del="${esc(n)}" title="Видалити гравця">✕</button>
@@ -2636,7 +2684,7 @@ document.addEventListener('keydown', e=>{
   if(!nameRequired) nameOverlay.classList.remove('show');
 });
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  if(!confirm(`Скинути весь прогрес гравця «${player}»? Нейрончики, кулі, рекорди й медалі почнуться спочатку.`)) return;
+  if(!confirm(`Скинути весь прогрес гравця «${player}»? Нейрончики, плавзасоби, рекорди й медалі почнуться спочатку.`)) return;
   store.players[player] = newProfile();
   enterGame(player);
 });
@@ -2662,11 +2710,11 @@ function makeShareLink(){
   const cp = {};
   for(const c of COMPS){ const r = profile.comps[c.id]; if(r) cp[c.id] = [MEDAL_RANK[r.medal], r.day, avg(r.s, 1), avg(r.s, 2)]; }
   const data = { v:3, n:player, x:profile.neurons, b:profile.bests, r:profile.races, w:profile.wins,
-                 m:settings.model, k:balloonColor(settings.model), bd:settings.badge, cp, f:profile.since, d:today() };
+                 m:settings.model, k:boatColor(settings.model), fl:settings.flag, bd:settings.badge, cp, f:profile.since, d:today() };
   return baseURL() + '#r=' + b64urlEncode(JSON.stringify(data));
 }
 function makeResultLink(c, result){
-  const data = { v:1, n:player, bd:settings.badge, k:balloonColor(result.m || 'classic'), m:result.m || 'classic', c:c.id, s:result.s, d:result.day };
+  const data = { v:1, n:player, bd:settings.badge, k:boatColor(result.m || 'rowboat'), m:result.m || 'rowboat', fl:settings.flag, c:c.id, s:result.s, d:result.day };
   return baseURL() + '#c=' + b64urlEncode(JSON.stringify(data));
 }
 function readHash(prefix){
@@ -2683,7 +2731,7 @@ function readProfileLink(){
   const RANK_MEDAL = ['', 'bronze', 'silver', 'gold'];
   for(const c of COMPS){ const x = d.cp?.[c.id]; if(Array.isArray(x) && RANK_MEDAL[num(x[0], 3)]) cp[c.id] = { medal:RANK_MEDAL[num(x[0], 3)], day:num(x[1], 1e6), sp:num(x[2], 1500), ac:num(x[3], 100) }; }
   return { n:cleanName(d.n), x:num(d.x, 1e7), b, r:num(d.r, 1e6), w:num(d.w, 1e6),
-           m: BALLOON_ORDER.includes(d.m) ? d.m : 'classic', k: COLORS.includes(d.k) ? d.k : COLORS[0],
+           m: BOAT_ORDER.includes(d.m) ? d.m : 'rowboat', k: COLORS.includes(d.k) ? d.k : COLORS[0], fl: PENNANTS[d.fl] ? d.fl : 'ua',
            bd: BADGES[d.bd] ? d.bd : '', cp, f:num(d.f, 1e6), d:num(d.d, 1e6) };
 }
 function readResultLink(){
@@ -2691,13 +2739,13 @@ function readResultLink(){
   const c = d && compById(d.c);
   if(!c || !Array.isArray(d.s) || d.s.length > c.stages.length) return null;
   const s = d.s.map(x=>[num(x?.[0], 36000), num(x?.[1], 1500), num(x?.[2], 100), x?.[3] ? 1 : 0]);
-  return { n:cleanName(d.n), bd: BADGES[d.bd] ? d.bd : '', k: COLORS.includes(d.k) ? d.k : COLORS[0], m: BALLOON_ORDER.includes(d.m) ? d.m : 'classic', c, s, medal: s.length === c.stages.length ? medalOf(s) : null, d:num(d.d, 1e6) };
+  return { n:cleanName(d.n), bd: BADGES[d.bd] ? d.bd : '', k: COLORS.includes(d.k) ? d.k : COLORS[0], m: BOAT_ORDER.includes(d.m) ? d.m : 'rowboat', fl: PENNANTS[d.fl] ? d.fl : 'ua', c, s, medal: s.length === c.stages.length ? medalOf(s) : null, d:num(d.d, 1e6) };
 }
 
 
 /* ================= Сторінки за посиланням ================= */
 const shareView = document.getElementById('shareView');
-function prepareShared(track, balHTML){
+function prepareShared(track, boatHTML){
   document.body.classList.add('ro');   // чужі дані: власний профіль не показуємо й нічого не змінюємо
   trackEl.hidden = !track;
   race = null;
@@ -2710,10 +2758,9 @@ function prepareShared(track, balHTML){
   shareView.hidden = false;
   if(!track) return;
   applyTrack(track);
-  balMe.innerHTML = balHTML;
-  balMe.style.left = '50%';
-  balMe.style.setProperty('--h', .5);
-  balBot.hidden = true;
+  boatMe.innerHTML = boatHTML;
+  boatMe.style.left = '50%';
+  boatBot.hidden = true;
   mastEl.hidden = true;
   timerEl.hidden = true;
 }
@@ -2721,18 +2768,18 @@ function prepareShared(track, balHTML){
 // Результати змагання за посиланням
 function showResult(d){
   const c = d.c, n = c.stages.length;
-  prepareShared(c.stages[Math.max(0, d.s.length - 1)][0], balloonSVG(d.m, d.k, 'me') + nameTag(d.n, d.bd));
+  prepareShared(c.stages[Math.max(0, d.s.length - 1)][0], boatSVG(d.m, d.k, 'me', d.fl) + nameTag(d.n, d.bd));
   const total = d.s.reduce((t, x)=>t + x[0], 0);
   const wins = d.s.filter(x=>x[3]).length;
   shareView.innerHTML = `
     <div class="cert">
       <div class="cert-head">${badgeHTML(c.badge)}
         <div><div class="cert-kicker">Результати змагання</div><h2>${c.name}</h2></div>
-        <div class="cert-medal">${d.medal ? `${MEDALS[d.medal][0]}<small>${MEDALS[d.medal][1]}</small>` : `🎈<small>пройдено ${d.s.length} з ${n}</small>`}</div>
+        <div class="cert-medal">${d.medal ? `${MEDALS[d.medal][0]}<small>${MEDALS[d.medal][1]}</small>` : `🚣<small>пройдено ${d.s.length} з ${n}</small>`}</div>
       </div>
       <div class="cert-who">Учасник: <b>${badgeHTML(d.bd)} ${esc(d.n)}</b>${d.d ? ` · ${fmtDay(d.d)}` : ''}</div>
       <div class="table-scroll"><table class="res-table">
-        <thead><tr><th>Етап</th><th>Регіон</th><th>Час</th><th>Швидкість, зн/хв</th><th>Точність</th><th>Результат</th></tr></thead>
+        <thead><tr><th>Етап</th><th>Траса</th><th>Час</th><th>Швидкість, зн/хв</th><th>Точність</th><th>Результат</th></tr></thead>
         <tbody>${c.stages.map(([track, lang], i)=>{ const t = TRACKS[trackIdx(track)], x = d.s[i];
           return `<tr><td>${i+1}</td><td>${t.emoji} ${t.name} ${LANG_FLAG[lang]}</td>` + (x
             ? `<td>${fmtTime(x[0])}</td><td>${x[1]}</td><td>${x[2]}%</td><td>${x[3] ? '<span class="won">Перемога</span>' : '2 місце'}</td></tr>`
@@ -2750,11 +2797,11 @@ function showProfile(d){
   const cell = k => d.b[k] ? `<b>${d.b[k]}</b>` : '—';
   shareView.innerHTML = `
     <div class="ach-head">
-      <div class="prof-avatar">${balloonSVG(d.m, d.k, 'me')}${badgeHTML(d.bd)}</div>
+      <div class="prof-avatar">${boatSVG(d.m, d.k, 'me', d.fl)}${badgeHTML(d.bd)}</div>
       <div>
         <div class="cert-kicker">Досягнення гравця</div>
         <h2>${esc(d.n)}</h2>
-        <div class="prof-stats"><span>${NEURON} <b>${d.x}</b></span><span>польотів <b>${d.r}</b></span><span>перемог <b>${d.w}</b></span></div>
+        <div class="prof-stats"><span>${NEURON} <b>${d.x}</b></span><span>запливів <b>${d.r}</b></span><span>перемог <b>${d.w}</b></span></div>
         ${d.d ? `<span class="share-date">станом на ${fmtDay(d.d)}</span>` : ''}
       </div>
     </div>
@@ -2763,9 +2810,9 @@ function showProfile(d){
         return `<div class="medal-item${x ? ' got' : ''}" title="${x ? `${MEDALS[x.medal][1]} · ${fmtDay(x.day)} · ${x.sp} зн/хв, ${x.ac}%` : 'Ще не пройдено'}">
           ${badgeHTML(c.badge)}${x ? `<span class="m">${MEDALS[x.medal][0]}</span>` : ''}<small>${c.name}</small></div>`; }).join('')}
     </div></div>
-    <div class="share-sec"><h3>Кулі</h3><div class="cards balloons">
-      ${BALLOON_ORDER.map(id=>{ const open = isOpen('balloon', id, d.x);
-        return `<div class="pick static${open ? '' : ' locked'}"><span class="bal-prev">${balloonSVG(id, open ? d.k : '#999', 'me')}</span><span class="label">${BALLOONS[id].name}</span></div>`; }).join('')}
+    <div class="share-sec"><h3>Плавзасоби</h3><div class="cards boats">
+      ${BOAT_ORDER.map(id=>{ const open = isOpen('boat', id, d.x);
+        return `<div class="pick static${open ? '' : ' locked'}"><span class="bal-prev">${boatSVG(id, open ? d.k : '#999', 'me', d.fl)}</span><span class="label">${BOATS[id].name}</span></div>`; }).join('')}
     </div></div>
     <div class="share-sec"><h3>Рекорди швидкості, знаків/хв</h3><div class="table-scroll">
       <table class="best-table"><tr><th></th>${TRACKS.map(t=>`<th>${t.emoji} ${t.name}</th>`).join('')}</tr>
@@ -2783,7 +2830,7 @@ function startGame(){
   if(store.current && store.players[store.current]) enterGame(store.current);
   else { toSetup(); openNameModal(true); }
 }
-// Посилання на змагання: …/balloon-race-kids/#z=3
+// Посилання на змагання: …/water-race-kids/#z=3
 let pendingComp = 0;
 function openPendingComp(){
   const n = pendingComp;

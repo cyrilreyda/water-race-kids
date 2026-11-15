@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Як грати · Повітряні перегони</title>
+<title>Як грати · Перегони на воді</title>
 <link href="../fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: гра працює без інтернету -->
 <link rel="icon" type="image/png" href="../icons/icon-192.png">
 <style>
@@ -73,22 +73,21 @@
   .field .in::after{content:"|"; color:var(--teal); animation:blink 1s steps(1) infinite; margin-left:1px;}
   @keyframes blink{50%{opacity:0;}}
 
-  /* 3 · небо */
-  .mini-sky{height:100px; border-radius:12px; overflow:hidden; position:relative; background:linear-gradient(#8FD3FF, #E3F5FF);}
-  .mini-sky::after{content:""; position:absolute; left:0; right:0; bottom:0; height:16px; background:#7CC47F;}
-  .mini-sky .bal{position:absolute; width:30px; left:16%; bottom:30px;}
+  /* 3 · річка */
+  .mini-sky{height:120px; border-radius:12px; overflow:hidden; position:relative; background:linear-gradient(#8FD3FF, #E3F5FF 42%, #5AA9DD 42%, #2F7FB8);}
+  .mini-sky::after{content:""; position:absolute; left:0; right:0; top:37%; height:7px; background:#E9D9A6;}
+  .mini-sky .bal{position:absolute; width:66px; left:12%; bottom:0; z-index:1;}
   .mini-sky .bal svg{display:block; width:100%; height:auto;}
-  .mini-sky .bal.bot{width:22px; left:34%; bottom:46px;}
-  .mini-sky .bal small{position:absolute; left:50%; top:100%; transform:translateX(-50%); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:10px; background:#fff; border-radius:999px; padding:0 5px; white-space:nowrap;}
-  .mini-sky .go{position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end; padding-right:16px; z-index:1;}
+  .mini-sky .bal.bot{width:48px; left:30%; bottom:30px; z-index:0;}
+  .mini-sky .bal small{position:absolute; left:50%; bottom:100%; transform:translateX(-50%); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:10px; background:#fff; border-radius:999px; padding:0 5px; white-space:nowrap;}
+  .mini-sky .go{position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end; padding-right:16px; z-index:2;}
   .mini-sky .go span{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; background:var(--teal); color:#fff; border-radius:999px; padding:5px 16px; box-shadow:0 3px 0 var(--teal-dark), 0 8px 18px rgba(27,27,58,.3);}
   .mini-sky .timer{position:absolute; top:6px; right:8px; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px; background:#fff; border-radius:999px; padding:0 10px;}
-  /* куля учня то піднімається, поки друкуєш, то опускається, коли зупинився */
-  .fly{animation:fly 4s ease-in-out infinite;}
-  @keyframes fly{0%,100%{bottom:46px;} 55%{bottom:46px;} 85%{bottom:16px;}}
-  .mini-sky .fly{left:46%;}
-  .mini-sky .fly.bot{animation:fly-bot 4s ease-in-out infinite; left:20%;}
-  @keyframes fly-bot{0%,100%{bottom:50px;} 50%{bottom:54px;}}
+  /* човен учня пливе, поки друкуєш, і зупиняється, коли перестав; робот пливе рівно */
+  .fly{animation:fly 5s ease-in-out infinite;}
+  @keyframes fly{0%{left:10%;} 55%{left:58%;} 100%{left:58%;}}
+  .mini-sky .fly.bot{animation:fly-bot 5s linear infinite;}
+  @keyframes fly-bot{0%{left:6%;} 100%{left:66%;}}
 
   /* 4 · друк */
   .typing{background:#FBFAFE; border:1.5px solid var(--line); border-radius:12px; padding:8px 10px; font-size:19px; font-weight:700; letter-spacing:.5px;}
@@ -121,20 +120,19 @@
     .topbar{display:none;}
     .step{break-inside:avoid; box-shadow:none;}
   }
-  .emo{display:inline-block; width:1.15em; height:1.15em; vertical-align:-.2em;}   /* картинка замість емодзі (листок каштана) */
 </style>
 </head>
 <body>
 
 <div class="topbar"><div class="topbar-inner">
   <a class="back-link" href="../index.html">← До перегонів</a>
-  <a class="play-link" href="../index.html">🎈 Грати</a>
+  <a class="play-link" href="../index.html">🚣 Грати</a>
 </div></div>
 
 <main class="container">
 
   <header class="hero">
-    <div class="eyebrow">Повітряні перегони · Інструкція</div>
+    <div class="eyebrow">Перегони на воді · Інструкція</div>
     <h1>Як пройти змагання й надіслати результат</h1>
     <p>Сім кроків — від посилання на змагання до твоєї медалі.</p>
   </header>
@@ -161,8 +159,8 @@
         <div class="dlg">
           <div class="wave">👋</div>
           <div class="cap">Привіт! Як тебе звати?</div>
-          <div class="chips"><span>Хмаринка</span><span>Вітерець</span></div>
-          <div class="field"><span class="in">Супер Пілот</span><span class="ui primary">Почати</span></div>
+          <div class="chips"><span>Хвилька</span><span>Капітан</span></div>
+          <div class="field"><span class="in">Супер Капітан</span><span class="ui primary">Почати</span></div>
         </div>
       </div>
     </li>
@@ -172,13 +170,14 @@
       <span class="num">3</span>
       <div>
         <h2>Натисни «На старт!»</h2>
-        <p>Гра одразу відкриє змагання з посилання. Тисни <span class="ui primary">🎈 На старт!</span> над небом регіону.</p>
+        <p>Гра одразу відкриє змагання з посилання. Тисни <span class="ui primary">🚣 На старт!</span> над річкою траси.</p>
+        <p>Хочеш дізнатися більше про річку? Натисни <span class="ui">i</span> на картці траси або <span class="ui">🌊 Річки</span> вгорі сторінки.</p>
       </div>
       <div class="pic" aria-hidden="true">
         <div class="mini-sky">
-          <span class="bal bot"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#6C5CE7"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#6C5CE7"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg><small>🤖 Робот</small></span>
-          <span class="bal"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#FF6B4A"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#FF6B4A"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg><small>Ти</small></span>
-          <div class="go"><span>🎈 На старт!</span></div>
+          <span class="bal bot"><svg viewBox="0 0 100 70" aria-hidden="true"><path d="M17 50 V31" stroke="#6E5536" stroke-width="1.2"/><g transform="translate(3 31)"><path d="M0 0 Q3.5 -1.2 7 0 T14 0 V9 Q10.5 7.8 7 9 T0 9 Z" fill="#C9D3E6"/><circle cx="5" cy="4.5" r="1.3" fill="#16A3A0"/><circle cx="9" cy="4.5" r="1.3" fill="#16A3A0"/></g><g transform="translate(50 44) scale(1.15)"><rect x="-5" y="-5" width="10" height="9" rx="2.2" fill="#C9D3E6"/><circle cx="-2" cy="-.5" r="1.4" fill="#16A3A0"/><circle cx="2" cy="-.5" r="1.4" fill="#16A3A0"/><rect x="-.6" y="-8" width="1.2" height="3" fill="#C9D3E6"/><circle cx="0" cy="-8.5" r="1.3" fill="#FF5D9E"/></g><path d="M12 49 H88 Q86 59 76 62 H25 Q15 59 12 49 Z" fill="#6C5CE7"/><path d="M12 49 H88 L87.4 51.8 H12.6 Z" fill="#fff" opacity=".85"/> <path d="M20 56.5 H80" stroke="#1B1B3A" stroke-opacity=".18"/><g><path d="M46 50 L31 63.2" stroke="#8B5A2B" stroke-width="1.7" stroke-linecap="round"/> <ellipse cx="30" cy="64" rx="4" ry="1.5" transform="rotate(-42 30 64)" fill="#C08A45"/></g><path d="M14 61.5 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" fill="none"/></svg><small>🤖 Робот</small></span>
+          <span class="bal"><svg viewBox="0 0 100 70" aria-hidden="true"><path d="M17 50 V31" stroke="#6E5536" stroke-width="1.2"/><g transform="translate(3 31)"><path d="M0 0 Q3.5 -1.2 7 0 T14 0 V9 Q10.5 7.8 7 9 T0 9 Z" fill="#FFD23F"/><path d="M0 0 Q3.5 -1.2 7 0 T14 0 V4.5 Q10.5 3.3 7 4.5 T0 4.5 Z" fill="#2F6FD1"/></g><g transform="translate(50 44) scale(1.15)"><circle r="5" fill="#fff" stroke="#1B1B3A" stroke-width="1"/><path d="M-.5 -2.2 H4.6 A5 5 0 0 1 4.6 1.2 H-.5 Z" fill="#1B1B3A" opacity=".85"/><path d="M-4.5 -1.5 Q0 -4 3 -4.2" stroke="#FF5D9E" stroke-width="1.5" fill="none"/></g><path d="M12 49 H88 Q86 59 76 62 H25 Q15 59 12 49 Z" fill="#FF6B4A"/><path d="M12 49 H88 L87.4 51.8 H12.6 Z" fill="#fff" opacity=".85"/> <path d="M20 56.5 H80" stroke="#1B1B3A" stroke-opacity=".18"/><g><path d="M46 50 L31 63.2" stroke="#8B5A2B" stroke-width="1.7" stroke-linecap="round"/> <ellipse cx="30" cy="64" rx="4" ry="1.5" transform="rotate(-42 30 64)" fill="#C08A45"/></g><path d="M14 61.5 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" fill="none"/></svg><small>Ти</small></span>
+          <div class="go"><span>🚣 На старт!</span></div>
         </div>
       </div>
     </li>
@@ -187,20 +186,20 @@
     <li class="step">
       <span class="num">4</span>
       <div>
-        <h2>Друкуй хвилину й пролети далі за робота</h2>
-        <p>Натискай жовту літеру: кожна правильна літера несе кулю вперед і підігріває пальник. Політ триває хвилину. Етап зараховано, якщо твоя куля пролетіла далі за робота і помилок мало.</p>
-        <p>Зупинишся чи друкуватимеш надто повільно — куля почне знижуватись. Торкнулась землі — політ закінчено.</p>
+        <h2>Друкуй хвилину й пропливи далі за робота</h2>
+        <p>Натискай жовту літеру: кожна правильна літера несе човен на метр уперед. Заплив триває хвилину. Етап зараховано, якщо твій човен проплив далі за робота і помилок мало.</p>
+        <p>Зупинишся — човен плавно загальмує й стоятиме, доки не продовжиш. Через зупинку заплив не закінчиться, але робот тим часом пливе далі.</p>
         <p>Не вийшло — тисни <span class="ui">↻ Ще раз</span>.</p>
-        <p>Внизу головної сторінки — наліпки за досягнення. Сіра наліпка, що вже трохи зафарбована, збирається за кілька польотів: під нею видно, скільки зібрано. Клацни наліпку — і дізнаєшся, як її отримати.</p>
+        <p>Внизу головної сторінки — наліпки за досягнення. Сіра наліпка, що вже трохи зафарбована, збирається за кілька запливів: під нею видно, скільки зібрано. Клацни наліпку — і дізнаєшся, як її отримати. Деякі наліпки відкривають нові прапорці для твого човна.</p>
       </div>
       <div class="pic" aria-hidden="true">
         <div class="mini-sky" style="margin-bottom:8px">
           <span class="timer">0:42 🏁</span>
-          <span class="bal fly"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#FF6B4A"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#FF6B4A"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg></span>
-          <span class="bal fly bot"><svg viewBox="0 0 60 84" aria-hidden="true"><path d="M30 2 C46.7 2 57 13 57 29 C57 43 43.1 53 36 59 H24 C16.9 53 3 43 3 29 C3 13 13.3 2 30 2 Z" fill="#6C5CE7"/><path d="M30 2 C41.2 2 48 13 48 29 C48 43 38.6 53 34.1 59 H25.9 C21.4 53 12 43 12 29 C12 13 18.8 2 30 2 Z" fill="#fff"/><path d="M30 2 C35.6 2 39 13 39 29 C39 43 34 53 32.1 59 H27.9 C26 53 21 43 21 29 C21 13 24.4 2 30 2 Z" fill="#6C5CE7"/><path d="M24.6 59 L22.5 68.5 M35.4 59 L37.5 68.5" stroke="#6E5536" stroke-width="1.2"/><rect x="21" y="68" width="18" height="13" rx="2.5" fill="#C08A45"/></svg></span>
+          <span class="bal fly"><svg viewBox="0 0 100 70" aria-hidden="true"><path d="M17 50 V31" stroke="#6E5536" stroke-width="1.2"/><g transform="translate(3 31)"><path d="M0 0 Q3.5 -1.2 7 0 T14 0 V9 Q10.5 7.8 7 9 T0 9 Z" fill="#FFD23F"/><path d="M0 0 Q3.5 -1.2 7 0 T14 0 V4.5 Q10.5 3.3 7 4.5 T0 4.5 Z" fill="#2F6FD1"/></g><g transform="translate(50 44) scale(1.15)"><circle r="5" fill="#fff" stroke="#1B1B3A" stroke-width="1"/><path d="M-.5 -2.2 H4.6 A5 5 0 0 1 4.6 1.2 H-.5 Z" fill="#1B1B3A" opacity=".85"/><path d="M-4.5 -1.5 Q0 -4 3 -4.2" stroke="#FF5D9E" stroke-width="1.5" fill="none"/></g><path d="M12 49 H88 Q86 59 76 62 H25 Q15 59 12 49 Z" fill="#FF6B4A"/><path d="M12 49 H88 L87.4 51.8 H12.6 Z" fill="#fff" opacity=".85"/> <path d="M20 56.5 H80" stroke="#1B1B3A" stroke-opacity=".18"/><g><path d="M46 50 L31 63.2" stroke="#8B5A2B" stroke-width="1.7" stroke-linecap="round"/> <ellipse cx="30" cy="64" rx="4" ry="1.5" transform="rotate(-42 30 64)" fill="#C08A45"/></g><path d="M14 61.5 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" fill="none"/></svg></span>
+          <span class="bal fly bot"><svg viewBox="0 0 100 70" aria-hidden="true"><path d="M17 50 V31" stroke="#6E5536" stroke-width="1.2"/><g transform="translate(3 31)"><path d="M0 0 Q3.5 -1.2 7 0 T14 0 V9 Q10.5 7.8 7 9 T0 9 Z" fill="#C9D3E6"/><circle cx="5" cy="4.5" r="1.3" fill="#16A3A0"/><circle cx="9" cy="4.5" r="1.3" fill="#16A3A0"/></g><g transform="translate(50 44) scale(1.15)"><rect x="-5" y="-5" width="10" height="9" rx="2.2" fill="#C9D3E6"/><circle cx="-2" cy="-.5" r="1.4" fill="#16A3A0"/><circle cx="2" cy="-.5" r="1.4" fill="#16A3A0"/><rect x="-.6" y="-8" width="1.2" height="3" fill="#C9D3E6"/><circle cx="0" cy="-8.5" r="1.3" fill="#FF5D9E"/></g><path d="M12 49 H88 Q86 59 76 62 H25 Q15 59 12 49 Z" fill="#6C5CE7"/><path d="M12 49 H88 L87.4 51.8 H12.6 Z" fill="#fff" opacity=".85"/> <path d="M20 56.5 H80" stroke="#1B1B3A" stroke-opacity=".18"/><g><path d="M46 50 L31 63.2" stroke="#8B5A2B" stroke-width="1.7" stroke-linecap="round"/> <ellipse cx="30" cy="64" rx="4" ry="1.5" transform="rotate(-42 30 64)" fill="#C08A45"/></g><path d="M14 61.5 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0 q2.5 -1.5 5 0 t5 0" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" fill="none"/></svg></span>
         </div>
         <div class="typing"><span class="ok">мама мила </span><span class="cur">р</span>аму</div>
-        <div class="rules"><span>🎈 далі за робота</span><span>⬆️ не сідай на землю</span><span>🎯 мало помилок</span></div>
+        <div class="rules"><span>🚣 далі за робота</span><span>⏱ хвилина друку</span><span>🎯 мало помилок</span></div>
       </div>
     </li>
 
@@ -213,9 +212,9 @@
       </div>
       <div class="pic" aria-hidden="true">
         <div class="stages">
-          <div class="done"><span>1 · <svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/><g transform="rotate(-86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(-43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(0 12 14) translate(12 14) scale(1) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g></svg> Київщина</span><b>✓ Перемога</b></div>
-          <div class="done"><span>2 · <svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/><g transform="rotate(-86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(-43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(0 12 14) translate(12 14) scale(1) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g></svg> Київщина</span><b>✓ Перемога</b></div>
-          <div class="done"><span>3 · <svg class="emo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14L12.3 19.5" stroke="#2A7A4B" stroke-width="1.6" stroke-linecap="round"/><g transform="rotate(-86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(86 12 14) translate(12 14) scale(0.72) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(-43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(43 12 14) translate(12 14) scale(0.9) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g><g transform="rotate(0 12 14) translate(12 14) scale(1) translate(-12 -14)"><path d="M12 14C11.4 12 8.9 8.6 8.6 5.6C8.4 3.2 9.9 1.6 11.4 1.1L12 .2L12.6 1.1C14.1 1.6 15.6 3.2 15.4 5.6C15.1 8.6 12.6 12 12 14Z" fill="#6CC24A" stroke="#2A7A4B" stroke-width=".75" stroke-linejoin="round"/><path d="M12 13V1.6M12 9.6L10.4 8.2M12 9.6L13.6 8.2M12 7L9.8 5.4M12 7L14.2 5.4M12 4.6L10.4 3.3M12 4.6L13.6 3.3" fill="none" stroke="#C8F0D5" stroke-width=".5" stroke-linecap="round"/></g></svg> Київщина</span><b>✓ Перемога</b></div>
+          <div class="done"><span>1 · 🌉 Дніпро</span><b>✓ Перемога</b></div>
+          <div class="done"><span>2 · 🌉 Дніпро</span><b>✓ Перемога</b></div>
+          <div class="done"><span>3 · 🌉 Дніпро</span><b>✓ Перемога</b></div>
         </div>
         <div class="medal">🥇🥈🥉</div>
       </div>
@@ -230,7 +229,7 @@
       </div>
       <div class="pic" aria-hidden="true">
         <div class="final">
-          <b>🏆 «Кубок Києва» завершено: 🥇 Золото!</b><br>Середня точність: 98%
+          <b>🏆 «Кубок Дніпра» завершено: 🥇 Золото!</b><br>Середня точність: 98%
           <span class="ico hl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 7.5H7a4.5 4.5 0 0 0 0 9h3"/><path d="M14 7.5h3a4.5 4.5 0 0 1 0 9h-3"/><path d="M8.5 12h7"/></svg></span>
           <svg class="tap" viewBox="0 0 24 24"><path d="M5 2 L5 19 L9.5 15 L12.5 22 L15.5 20.6 L12.6 14 L18.5 14 Z" fill="#fff" stroke="#1B1B3A" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </div>
@@ -249,7 +248,7 @@
 
   </ol>
 
-  <footer>Повітряні перегони · Інструкція · за мотивами <a href="https://cyrilreyda.github.io/typing-race-kids/">«Клавіатурних перегонів»</a></footer>
+  <footer>Перегони на воді · Інструкція · продовження <a href="https://cyrilreyda.github.io/balloon-race-kids/">«Повітряних перегонів»</a></footer>
 </main>
 
 <script>

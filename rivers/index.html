@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Річки України · Перегони на воді</title>
+<link href="../fonts/fonts.css" rel="stylesheet">   <!-- локальні шрифти: сторінка працює без інтернету -->
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<script src="../rivers.js"></script>   <!-- ті самі довідки й схеми, що й у грі -->
+<style>
+  :root{
+    --bg:#F6F5FB; --ink:#1B1B3A; --ink-soft:#514F72; --surface:#FFFFFF; --line:#E4E1F5;
+    --teal:#16A3A0; --teal-dark:#0E7C7A; --yellow:#FFC93C;
+    --radius-s:10px; --radius-m:16px; --radius-l:26px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Nunito Sans',sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Baloo 2',sans-serif; font-weight:700; margin:0; color:var(--ink); line-height:1.25;}
+  .container{max-width:860px; margin:0 auto; padding:0 16px;}
+
+  .topbar{position:sticky; top:0; z-index:10; background:rgba(246,245,251,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line);}
+  .topbar-inner{max-width:860px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px;}
+  .back-link{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--teal-dark); text-decoration:none; white-space:nowrap;}
+  .back-link:hover{text-decoration:underline;}
+  .play-link{margin-left:auto; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; text-decoration:none; background:var(--teal); color:#fff; border-radius:999px; padding:4px 16px; white-space:nowrap;}
+  .play-link:hover{background:var(--teal-dark);}
+
+  .hero{padding:28px 0 6px;}
+  .eyebrow{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--teal-dark);}
+  .hero h1{font-size:32px; margin:2px 0 4px;}
+  .hero p{margin:0; color:var(--ink-soft); font-size:17px;}
+  @media (max-width:600px){ .hero h1{font-size:26px;} }
+  /* Перелік трас — переходи до довідок */
+  .jump{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 4px; padding:0; list-style:none;}
+  .jump a{display:inline-block; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14.5px; text-decoration:none; color:var(--ink);
+    background:var(--surface); border:1.5px solid var(--line); border-radius:999px; padding:3px 14px;}
+  .jump a:hover{border-color:var(--teal);}
+
+  .rivers{display:grid; gap:16px; margin:18px 0 0;}
+  .river{background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-l); padding:18px 20px; scroll-margin-top:70px;}
+  .river-title{font-size:24px; margin-bottom:10px;}
+  .river-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:16px; align-items:start;}
+  @media (max-width:640px){ .river-grid{grid-template-columns:1fr;} .river{padding:14px;} }
+  .river-map{display:block; width:100%; height:auto; border-radius:var(--radius-m); border:1.5px solid var(--line);}
+  .river-map .cities text{font-family:'Nunito Sans',sans-serif; font-weight:700; fill:var(--ink); stroke:#fff; paint-order:stroke;}
+  .river-map .sea-name{font-family:'Nunito Sans',sans-serif; font-size:10px; font-style:italic; fill:#1E5E8C;}
+  .river-facts{margin:0; font-size:14.5px; line-height:1.4;}
+  .river-facts dt{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:12.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;}
+  .river-facts dd{margin:0 0 8px;}
+  .river-text{margin:12px 0 8px; font-size:16px;}
+  .river-fun{margin:0; background:#FFF4D6; border-radius:var(--radius-m); padding:8px 12px; font-size:15px;}
+  .fun-label{font-family:'Baloo 2',sans-serif; font-weight:700; color:#8A6200;}
+
+  footer{margin:36px 0 30px; text-align:center; font-size:13.5px; color:var(--ink-soft);}
+  @media print{
+    body{background:#fff;}
+    .topbar, .jump{display:none;}
+    .river{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="back-link" href="../index.html">← До перегонів</a>
+  <a class="play-link" href="../index.html">🚣 Грати</a>
+</div></div>
+
+<main class="container">
+  <header class="hero">
+    <div class="eyebrow">Перегони на воді · Довідка</div>
+    <h1>Річки й море України</h1>
+    <p>Вісім трас гри — найвідоміші річки України й Чорне море. Карти схематичні: обриси спрощені, але міста й напрям течії на своїх місцях.</p>
+    <ul class="jump" id="jump"></ul>
+  </header>
+
+  <div class="rivers" id="rivers"></div>
+
+  <footer>Перегони на воді · Довідка про траси</footer>
+</main>
+
+<script>
+document.getElementById('jump').innerHTML = Object.keys(RIVERS).map(id=>`<li><a href="#${id}">${RIVERS[id].emoji} ${RIVERS[id].name}</a></li>`).join('');
+document.getElementById('rivers').innerHTML = Object.keys(RIVERS).map(id=>`<section class="river" id="${id}">${riverCard(id)}</section>`).join('');
+// Офлайн: той самий обробник sw.js, що й у грі
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('../sw.js').catch(()=>{});
+</script>
+</body>
+</html>
