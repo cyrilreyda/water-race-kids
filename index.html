@@ -452,6 +452,12 @@
   .flag-pick:hover{border-color:var(--teal);}
   .flag-pick.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--ink);}
   .flag-pick.locked{opacity:.35; filter:grayscale(1); cursor:help;}
+  /* Пілот: голова в кружечку */
+  .pilots{display:flex; flex-wrap:wrap; gap:6px;}
+  .pilot-pick{width:40px; height:40px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); padding:3px; cursor:pointer;}
+  .pilot-pick svg{display:block; width:100%; height:100%;}
+  .pilot-pick:hover{border-color:var(--teal);}
+  .pilot-pick.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--ink);}
   .start-over{position:absolute; inset:0; z-index:4; display:flex; align-items:center; justify-content:center; pointer-events:none;}
   .start-over .btn{pointer-events:auto; box-shadow:0 4px 0 var(--teal-dark), 0 10px 24px rgba(27,27,58,.3);}
   .race-info{font-family:'Baloo 2',sans-serif; font-weight:600; font-size:14px; color:var(--ink-soft); margin:-4px 0 10px;}
@@ -642,6 +648,7 @@
           <div class="bal-extras">
             <div class="extra"><span class="extra-label">Колір</span><div class="swatches" id="swatches"></div></div>
             <div class="extra"><span class="extra-label">Прапорець</span><div class="flags" id="flagPicks"></div></div>
+            <div class="extra"><span class="extra-label">Пілот</span><div class="pilots" id="pilotPicks"></div></div>
           </div></div>
         <div class="opt full"><h3>Мова</h3><div class="seg" id="segLang"></div></div>
       </div>
@@ -869,12 +876,33 @@ const LANG_FLAG = FLAGS;
 
 /* ================= Плавзасоби ================= */
 // Усі човни — у viewBox 100×70, ніс праворуч; ватерлінія — на y≈61.
-// Пілот: у гравця — шолом, у комп'ютера — голова робота
-function pilot(kind, x, y, s=1){
-  return kind === 'bot'
-    ? `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-5" y="-5" width="10" height="9" rx="2.2" fill="#C9D3E6"/><circle cx="-2" cy="-.5" r="1.4" fill="#16A3A0"/><circle cx="2" cy="-.5" r="1.4" fill="#16A3A0"/><rect x="-.6" y="-8" width="1.2" height="3" fill="#C9D3E6"/><circle cx="0" cy="-8.5" r="1.3" fill="#FF5D9E"/></g>`
-    : `<g transform="translate(${x} ${y}) scale(${s})"><circle r="5" fill="#fff" stroke="#1B1B3A" stroke-width="1"/><path d="M-.5 -2.2 H4.6 A5 5 0 0 1 4.6 1.2 H-.5 Z" fill="#1B1B3A" opacity=".85"/><path d="M-4.5 -1.5 Q0 -4 3 -4.2" stroke="#FF5D9E" stroke-width="1.5" fill="none"/></g>`;
+// Пілот: учень обирає сам (settings.pilot), у комп'ютера — голова робота. Голова — коло радіуса 5 з центром у (0, 0)
+const pilotFace = (hair = true) => `<circle r="5" fill="#FFD7B5"/>` +
+  (hair ? `<path d="M-5 .6 Q-5.7 -5.7 0 -5.7 Q5.7 -5.7 5 .6 Q3.6 -2.3 .6 -2.6 Q-1 -1.2 -3.4 -2 Q-4.4 -1 -5 .6 Z" fill="#7A4A22"/>`
+        : `<path d="M-5 -.6 Q-5.4 1 -4.7 1.8 M5 -.6 Q5.4 1 4.7 1.8" stroke="#7A4A22" stroke-width="1.2" fill="none"/>`) +   // під шапкою — лише пасма збоку
+  `<circle cx="-1.8" cy=".5" r=".7" fill="#1B1B3A"/><circle cx="1.8" cy=".5" r=".7" fill="#1B1B3A"/>
+   <circle cx="-3.1" cy="2" r=".85" fill="#FF8A8A" opacity=".55"/><circle cx="3.1" cy="2" r=".85" fill="#FF8A8A" opacity=".55"/>
+   <path d="M-1.6 2.4 Q0 3.7 1.6 2.4" stroke="#1B1B3A" stroke-width=".7" fill="none" stroke-linecap="round"/>`;
+const PILOTS = {
+  kid:    { name:'Дитина',  draw:pilotFace() },
+  cap:    { name:'Кепка',   draw:pilotFace(false) + `<path d="M-5.3 -1.2 Q-5 -6.3 0 -6.3 Q5 -6.3 5.3 -1.2 Z" fill="#FF5D9E"/><path d="M2.6 -1.6 Q7.4 -1.8 8.4 -.3 L2.6 -.3 Z" fill="#D63F80"/><circle cy="-6.3" r=".7" fill="#D63F80"/>` },
+  panama: { name:'Панамка', draw:pilotFace(false) + `<path d="M-3.9 -2.2 Q-3.7 -6.4 0 -6.4 Q3.7 -6.4 3.9 -2.2 Z" fill="#FFC93C"/><ellipse cy="-2.1" rx="7.2" ry="1.5" fill="#F2B21B"/><rect x="-3.9" y="-3.6" width="7.8" height="1.1" fill="#FF6B4A"/>` },
+  captain:{ name:'Капітан', draw:pilotFace(false) + `<path d="M-5.4 -2.4 Q-4.7 -6.8 0 -6.8 Q4.7 -6.8 5.4 -2.4 Z" fill="#fff" stroke="#C9CFDA" stroke-width=".5"/><rect x="-5.1" y="-2.9" width="10.2" height="1.7" rx=".85" fill="#1B1B3A"/>
+    <path d="M.8 -1.3 Q5.6 -1.2 6.7 .1 L.8 .1 Z" fill="#1B1B3A"/><circle cy="-4.6" r="1.1" fill="#F2C230"/>` },
+  cat:    { name:'Котик',   draw:`<path d="M-4.7 -2 L-4.3 -7.2 L-1 -4.5 Z M4.7 -2 L4.3 -7.2 L1 -4.5 Z" fill="#F29A3C"/><path d="M-3.9 -3.4 L-3.8 -5.8 L-2.2 -4.4 Z M3.9 -3.4 L3.8 -5.8 L2.2 -4.4 Z" fill="#FFB3B3"/>
+    <circle r="5" fill="#F29A3C"/><path d="M-1.6 -4.8 L-1.2 -2.8 M0 -5 V-2.9 M1.6 -4.8 L1.2 -2.8" stroke="#D97A22" stroke-width=".6"/><ellipse cy="2.1" rx="2.9" ry="2.1" fill="#FFE3C2"/>
+    <circle cx="-1.9" cy=".1" r=".75" fill="#1B1B3A"/><circle cx="1.9" cy=".1" r=".75" fill="#1B1B3A"/><path d="M-.6 1.4 H.6 L0 2.1 Z" fill="#FF5D9E"/>
+    <path d="M-1 2.6 Q-.5 3.3 0 2.6 Q.5 3.3 1 2.6" stroke="#1B1B3A" stroke-width=".5" fill="none"/><path d="M-2.4 2.2 H-5.6 M-2.4 2.8 L-5.4 3.6 M2.4 2.2 H5.6 M2.4 2.8 L5.4 3.6" stroke="#1B1B3A" stroke-width=".35"/>` },
+  sun:    { name:'Сонечко', draw:`<circle r="5" fill="#FFC93C" stroke="#E0A800" stroke-width=".6"/><ellipse cx="-1.8" cy="-.8" rx=".7" ry="1" fill="#1B1B3A"/><ellipse cx="1.8" cy="-.8" rx=".7" ry="1" fill="#1B1B3A"/>
+    <path d="M-2.8 1.3 Q0 4.6 2.8 1.3 Z" fill="#1B1B3A"/><path d="M-1.6 2.6 Q0 3.6 1.6 2.6" fill="#FF6B4A"/>` }
+};
+const PILOT_ORDER = Object.keys(PILOTS);
+const ROBOT_HEAD = `<rect x="-5" y="-5" width="10" height="9" rx="2.2" fill="#C9D3E6"/><circle cx="-2" cy="-.5" r="1.4" fill="#16A3A0"/><circle cx="2" cy="-.5" r="1.4" fill="#16A3A0"/><rect x="-.6" y="-8" width="1.2" height="3" fill="#C9D3E6"/><circle cx="0" cy="-8.5" r="1.3" fill="#FF5D9E"/>`;
+// who — 'bot' або ключ PILOTS
+function pilot(who, x, y, s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">${who === 'bot' ? ROBOT_HEAD : (PILOTS[who] || PILOTS.kid).draw}</g>`;
 }
+const pilotSVG = id => `<svg viewBox="-8.6 -8.6 17.2 17.2" aria-hidden="true">${PILOTS[id].draw}</svg>`;
 const star = (x, y, r, c='#fff') => `<path d="${Array.from({length:10}, (_, i)=>{ const a = Math.PI/5*i - Math.PI/2, q = i%2 ? r*.45 : r;
   return `${i ? 'L' : 'M'}${(x + q*Math.cos(a)).toFixed(1)} ${(y + q*Math.sin(a)).toFixed(1)}`; }).join(' ')} Z" fill="${c}"/>`;
 
@@ -919,7 +947,7 @@ const pole = (x, y1, y2, w = 1.2) => `<path d="M${x} ${y1} V${y2}" stroke="#6E55
 const oar = (x, y, len, row) => `<g class="oar" style="transform-origin:${x}px ${y}px; --row:${row}deg"><path d="M${x} ${y} L${x - len*.75} ${y + len*.66}" stroke="#8B5A2B" stroke-width="1.7" stroke-linecap="round"/>
   <ellipse cx="${x - len*.8}" cy="${y + len*.7}" rx="4" ry="1.5" transform="rotate(-42 ${x - len*.8} ${y + len*.7})" fill="#C08A45"/></g>`;
 
-// draw(колір, хто, прапорець)
+// draw(колір, пілот — 'bot' чи ключ PILOTS, прапорець)
 const BOATS = {
   rowboat:{ name:'Човен', draw:(c,k,f)=>wake(15) + pole(17, 50, 31) + pennant(f, 17, 31) + pilot(k, 50, 44, 1.15) +
     `<path d="M12 49 H88 Q86 59 76 62 H25 Q15 59 12 49 Z" fill="${c}"/><path d="M12 49 H88 L87.4 51.8 H12.6 Z" fill="#fff" opacity=".85"/>
@@ -958,8 +986,8 @@ const BOATS = {
     `<path d="M30 47 V42 H50 L55 47 Z" fill="#F4F1E8" stroke="#C9CFDA" stroke-width=".8"/><rect x="35" y="43.5" width="4" height="2.4" rx="1" fill="#8FC0EA"/><rect x="42" y="43.5" width="4" height="2.4" rx="1" fill="#8FC0EA"/>
      <path d="M6 47 H90 Q97 47 95 51 L85 61 H17 Z" fill="#fff" stroke="#C9CFDA" stroke-width=".8"/><path d="M8 51 H94.6 L93.4 53.6 H10 Z" fill="${c}"/>` + ripple(14, 90) }
 };
-function boatSVG(model, color, kind, flag = kind === 'bot' ? 'robot' : settings.flag){
-  return `<svg viewBox="0 0 100 70" aria-hidden="true">${BOATS[model].draw(color, kind, flag)}</svg>`;
+function boatSVG(model, color, kind, flag = kind === 'bot' ? 'robot' : settings.flag, who = settings.pilot){
+  return `<svg viewBox="0 0 100 70" aria-hidden="true">${BOATS[model].draw(color, kind === 'bot' ? 'bot' : who, flag)}</svg>`;
 }
 
 
@@ -1351,7 +1379,7 @@ const fmtDay = day => new Date(day * 86400000).toLocaleDateString('uk-UA', { tim
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const STORE_KEY = BOOST ? 'water-race-kids-boost-v1' : 'water-race-kids-v1';
-const DEFAULT_SETTINGS = { lang:'uk', model:'rowboat', track:'dnipro', badge:'', flag:'ua' };
+const DEFAULT_SETTINGS = { lang:'uk', model:'rowboat', track:'dnipro', badge:'', flag:'ua', pilot:'kid' };
 // comps: найкращий результат кожного змагання; run — змагання в процесі
 const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, stickers:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
 let store = { current:null, players:{} };
@@ -1620,6 +1648,7 @@ function renderSetup(){
   if(!isOpen('track', settings.track)) settings.track = 'dnipro';
   if(!isOpen('boat', settings.model)) settings.model = 'rowboat';
   if(!pennantOpen(settings.flag)) settings.flag = 'ua';
+  if(!PILOTS[settings.pilot]) settings.pilot = 'kid';
   settings.badge = earnedBadges(profile).pop() || '';   // біля імені — бейджик найскладнішого виграного змагання
 
   renderHUD();
@@ -1661,6 +1690,11 @@ function renderSetup(){
     if(!pennantOpen(id)){ const st = STICKERS.find(x=>x.id === PENNANTS[id].sticker); showToast(`🔒 Прапорець «${PENNANTS[id].name}» відкриває наліпка ${st.ico} «${st.name}»`, 2600); return; }
     settings.flag = id; renderSetup();
   }));
+
+  // Пілот
+  const pp = document.getElementById('pilotPicks');
+  pp.innerHTML = PILOT_ORDER.map(id=>`<button type="button" class="pilot-pick${id===settings.pilot?' on':''}" data-p="${id}" title="${PILOTS[id].name}" aria-label="Пілот ${PILOTS[id].name}">${pilotSVG(id)}</button>`).join('');
+  pp.querySelectorAll('.pilot-pick').forEach(b=>b.addEventListener('click', ()=>{ settings.pilot = b.dataset.p; renderSetup(); }));
 
   seg(document.getElementById('segLang'), LANGS, settings.lang, id=>{ settings.lang=id; renderSetup(); });
 
@@ -2636,7 +2670,7 @@ function enterGame(name){
 /* ================= Профіль ================= */
 const profileOverlay = document.getElementById('profileOverlay');
 const miniBoat = p => { const m = BOATS[p.settings?.model] ? p.settings.model : 'rowboat';
-  return `<span class="pb-bal">${boatSVG(m, boatColor(m, p.settings), 'me', PENNANTS[p.settings?.flag] ? p.settings.flag : 'ua')}</span>`; };
+  return `<span class="pb-bal">${boatSVG(m, boatColor(m, p.settings), 'me', PENNANTS[p.settings?.flag] ? p.settings.flag : 'ua', p.settings?.pilot)}</span>`; };
 function renderPlayerBtn(){
   document.getElementById('playerBal').innerHTML = boatSVG(settings.model, boatColor(settings.model), 'me');
   document.getElementById('playerName').textContent = player || 'Гравець';
@@ -2776,11 +2810,11 @@ function makeShareLink(){
   const cp = {};
   for(const c of COMPS){ const r = profile.comps[c.id]; if(r) cp[c.id] = [MEDAL_RANK[r.medal], r.day, avg(r.s, 1), avg(r.s, 2)]; }
   const data = { v:3, n:player, x:profile.neurons, b:profile.bests, r:profile.races, w:profile.wins,
-                 m:settings.model, k:boatColor(settings.model), fl:settings.flag, bd:settings.badge, cp, f:profile.since, d:today() };
+                 m:settings.model, k:boatColor(settings.model), fl:settings.flag, pl:settings.pilot, bd:settings.badge, cp, f:profile.since, d:today() };
   return baseURL() + '#r=' + b64urlEncode(JSON.stringify(data));
 }
 function makeResultLink(c, result){
-  const data = { v:1, n:player, bd:settings.badge, k:boatColor(result.m || 'rowboat'), m:result.m || 'rowboat', fl:settings.flag, c:c.id, s:result.s, d:result.day };
+  const data = { v:1, n:player, bd:settings.badge, k:boatColor(result.m || 'rowboat'), m:result.m || 'rowboat', fl:settings.flag, pl:settings.pilot, c:c.id, s:result.s, d:result.day };
   return baseURL() + '#c=' + b64urlEncode(JSON.stringify(data));
 }
 function readHash(prefix){
@@ -2797,7 +2831,7 @@ function readProfileLink(){
   const RANK_MEDAL = ['', 'bronze', 'silver', 'gold'];
   for(const c of COMPS){ const x = d.cp?.[c.id]; if(Array.isArray(x) && RANK_MEDAL[num(x[0], 3)]) cp[c.id] = { medal:RANK_MEDAL[num(x[0], 3)], day:num(x[1], 1e6), sp:num(x[2], 1500), ac:num(x[3], 100) }; }
   return { n:cleanName(d.n), x:num(d.x, 1e7), b, r:num(d.r, 1e6), w:num(d.w, 1e6),
-           m: BOAT_ORDER.includes(d.m) ? d.m : 'rowboat', k: COLORS.includes(d.k) ? d.k : COLORS[0], fl: PENNANTS[d.fl] ? d.fl : 'ua',
+           m: BOAT_ORDER.includes(d.m) ? d.m : 'rowboat', k: COLORS.includes(d.k) ? d.k : COLORS[0], fl: PENNANTS[d.fl] ? d.fl : 'ua', pl: PILOTS[d.pl] ? d.pl : 'kid',
            bd: BADGES[d.bd] ? d.bd : '', cp, f:num(d.f, 1e6), d:num(d.d, 1e6) };
 }
 function readResultLink(){
@@ -2805,7 +2839,7 @@ function readResultLink(){
   const c = d && compById(d.c);
   if(!c || !Array.isArray(d.s) || d.s.length > c.stages.length) return null;
   const s = d.s.map(x=>[num(x?.[0], 36000), num(x?.[1], 1500), num(x?.[2], 100), x?.[3] ? 1 : 0]);
-  return { n:cleanName(d.n), bd: BADGES[d.bd] ? d.bd : '', k: COLORS.includes(d.k) ? d.k : COLORS[0], m: BOAT_ORDER.includes(d.m) ? d.m : 'rowboat', fl: PENNANTS[d.fl] ? d.fl : 'ua', c, s, medal: s.length === c.stages.length ? medalOf(s) : null, d:num(d.d, 1e6) };
+  return { n:cleanName(d.n), bd: BADGES[d.bd] ? d.bd : '', k: COLORS.includes(d.k) ? d.k : COLORS[0], m: BOAT_ORDER.includes(d.m) ? d.m : 'rowboat', fl: PENNANTS[d.fl] ? d.fl : 'ua', pl: PILOTS[d.pl] ? d.pl : 'kid', c, s, medal: s.length === c.stages.length ? medalOf(s) : null, d:num(d.d, 1e6) };
 }
 
 
@@ -2834,7 +2868,7 @@ function prepareShared(track, boatHTML){
 // Результати змагання за посиланням
 function showResult(d){
   const c = d.c, n = c.stages.length;
-  prepareShared(c.stages[Math.max(0, d.s.length - 1)][0], boatSVG(d.m, d.k, 'me', d.fl) + nameTag(d.n, d.bd));
+  prepareShared(c.stages[Math.max(0, d.s.length - 1)][0], boatSVG(d.m, d.k, 'me', d.fl, d.pl) + nameTag(d.n, d.bd));
   const total = d.s.reduce((t, x)=>t + x[0], 0);
   const wins = d.s.filter(x=>x[3]).length;
   shareView.innerHTML = `
@@ -2863,7 +2897,7 @@ function showProfile(d){
   const cell = k => d.b[k] ? `<b>${d.b[k]}</b>` : '—';
   shareView.innerHTML = `
     <div class="ach-head">
-      <div class="prof-avatar">${boatSVG(d.m, d.k, 'me', d.fl)}${badgeHTML(d.bd)}</div>
+      <div class="prof-avatar">${boatSVG(d.m, d.k, 'me', d.fl, d.pl)}${badgeHTML(d.bd)}</div>
       <div>
         <div class="cert-kicker">Досягнення гравця</div>
         <h2>${esc(d.n)}</h2>
@@ -2878,7 +2912,7 @@ function showProfile(d){
     </div></div>
     <div class="share-sec"><h3>Плавзасоби</h3><div class="cards boats">
       ${BOAT_ORDER.map(id=>{ const open = isOpen('boat', id, d.x);
-        return `<div class="pick static${open ? '' : ' locked'}"><span class="bal-prev">${boatSVG(id, open ? d.k : '#999', 'me', d.fl)}</span><span class="label">${BOATS[id].name}</span></div>`; }).join('')}
+        return `<div class="pick static${open ? '' : ' locked'}"><span class="bal-prev">${boatSVG(id, open ? d.k : '#999', 'me', d.fl, d.pl)}</span><span class="label">${BOATS[id].name}</span></div>`; }).join('')}
     </div></div>
     <div class="share-sec"><h3>Рекорди швидкості, знаків/хв</h3><div class="table-scroll">
       <table class="best-table"><tr><th></th>${TRACKS.map(t=>`<th>${t.emoji} ${t.name}</th>`).join('')}</tr>
