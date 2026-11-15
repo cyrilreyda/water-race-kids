@@ -877,12 +877,12 @@ function pilot(kind, x, y, s=1){
 const star = (x, y, r, c='#fff') => `<path d="${Array.from({length:10}, (_, i)=>{ const a = Math.PI/5*i - Math.PI/2, q = i%2 ? r*.45 : r;
   return `${i ? 'L' : 'M'}${(x + q*Math.cos(a)).toFixed(1)} ${(y + q*Math.sin(a)).toFixed(1)}`; }).join(' ')} Z" fill="${c}"/>`;
 
-// Прапорці на щоглі. sticker — наліпка, яка відкриває прапорець; без неї — відкритий одразу
+// Прапорці на щоглі. sticker — наліпка, яка відкриває прапорець; одразу відкритий лише український
 const PENNANTS = {
   ua:     { name:'Україна' },
-  sun:    { name:'Сонечко' },
-  wave:   { name:'Хвиля' },
+  sun:    { name:'Сонечко',   sticker:'win' },
   fish:   { name:'Рибка',     sticker:'clean' },
+  wave:   { name:'Хвиля',     sticker:'nonstop' },
   star:   { name:'Зірка',     sticker:'record' },
   anchor: { name:'Якір',      sticker:'races' },
   cossack:{ name:'Козацький', sticker:'medal' }
