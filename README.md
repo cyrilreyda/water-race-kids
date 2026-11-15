@@ -79,4 +79,4 @@ python -m http.server 8768
 
 ## Автори
 
-Механіка, профіль і змагання — з [«Повітряних перегонів»](https://github.com/cyrilreyda/balloon-race-kids) і [«Клавіатурних перегонів»](https://github.com/cyrilreyda/typing-race-kids), які є адаптованою версією [«Клавіатурних перегонів»](https://cikavo.me/labs/typing-race/) з [Лабораторії](https://cikavo.me/labs/) автора [tkc-teacher](https://github.com/tkc-teacher/cikavo). «Перегони на воді» — cyrilreyda.
+Механіка, профіль і змагання — з [«Повітряних перегонів»](https://github.com/cyrilreyda/balloon-race-kids) і [«Клавіатурних перегонів»](https://github.com/cyrilreyda/typing-race-kids), які є адаптованою версією [«Клавіатурних перегонів»](https://cikavo.me/labs/typing-race/). Джерело: Ткачук І. А. Інтерактивні уроки інформатики. — https://cikavo.me. — Ліцензія [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.uk). «Перегони на воді» — cyrilreyda.
