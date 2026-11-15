@@ -892,13 +892,14 @@ const pennantOpen = id => PENNANTS[id] && (!PENNANTS[id].sticker || !!profile.st
 // Полотнище 14×9 із хвилею; спершу все полотнище, потім візерунок із тією самою хвилею — щілин немає
 const PENNANT_SHAPE = 'M0 0 Q3.5 -1.2 7 0 T14 0 V9 Q10.5 7.8 7 9 T0 9 Z';
 function pennantBody(id){
-  const bg = c => `<path d="${PENNANT_SHAPE}" fill="${c}"/>`;
+  // line — тонка сіра рамка для білого полотнища, щоб його було видно на білій кнопці
+  const bg = (c, line) => `<path d="${PENNANT_SHAPE}" fill="${c}"${line ? ' stroke="#9AA3B5" stroke-width=".5"' : ''}/>`;
   switch(id){
     case 'sun':     return bg('#2D9CDB') + `<circle cx="7" cy="4.5" r="2.6" fill="#FFC93C"/>`;
-    case 'wave':    return bg('#fff') + `<path d="M1.5 5.2 Q3.2 3.2 5 5.2 T8.5 5.2 T12.5 5.2" stroke="#2D9CDB" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    case 'wave':    return bg('#fff', true) + `<path d="M1.5 5.2 Q3.2 3.2 5 5.2 T8.5 5.2 T12.5 5.2" stroke="#2D9CDB" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
     case 'fish':    return bg('#16A3A0') + `<path d="M3 4.5 Q6.5 1.6 10 4.5 Q6.5 7.4 3 4.5 Z M10 4.5 L12.6 2.6 V6.4 Z" fill="#FFC93C"/><circle cx="5" cy="4.1" r=".6" fill="#1B1B3A"/>`;
     case 'star':    return bg('#3FA66B') + star(7, 4.7, 3.2, '#FFC93C');
-    case 'anchor':  return bg('#fff') + `<g stroke="#2F6FD1" stroke-width=".9" fill="none" stroke-linecap="round"><circle cx="7" cy="2" r=".9"/><path d="M7 2.9 V7.6 M5 4 H9 M4 5.8 Q4.5 7.7 7 7.7 Q9.5 7.7 10 5.8"/></g>`;
+    case 'anchor':  return bg('#fff', true) + `<g stroke="#2F6FD1" stroke-width=".9" fill="none" stroke-linecap="round"><circle cx="7" cy="2" r=".9"/><path d="M7 2.9 V7.6 M5 4 H9 M4 5.8 Q4.5 7.7 7 7.7 Q9.5 7.7 10 5.8"/></g>`;
     case 'cossack': return bg('#B5174B') + `<path d="M6.2 1.8 H7.8 V3.8 H9.8 V5.2 H7.8 V7.4 H6.2 V5.2 H4.2 V3.8 H6.2 Z" fill="#FFC93C"/>`;
     case 'robot':   return bg('#C9D3E6') + `<circle cx="5" cy="4.5" r="1.3" fill="#16A3A0"/><circle cx="9" cy="4.5" r="1.3" fill="#16A3A0"/>`;
     default:        return bg('#FFD23F') + `<path d="M0 0 Q3.5 -1.2 7 0 T14 0 V4.5 Q10.5 3.3 7 4.5 T0 4.5 Z" fill="#2F6FD1"/>`;   // Україна
