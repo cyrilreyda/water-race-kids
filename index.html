@@ -2688,6 +2688,8 @@ function renderProfile(){
   if(ACC){
     const u = ACC.user;
     document.getElementById('playersTitle').textContent = 'Вхід';
+    // «Вийти» — одразу під іменем, а не під графіком: на класному комп'ютері його мають бачити без прокрутки
+    document.getElementById('profStats').after(document.getElementById('playersTitle'), list);
     document.getElementById('addForm').hidden = true;
     list.innerHTML = `<div class="pl-row me">${miniBoat(profile)}<span class="pl-name">${esc(u.full)}<small>${u.guest ? 'граєш без входу: прогрес лише на цьому пристрої' : 'прогрес зберігається для всіх ігор і пристроїв'}</small></span>
       <button type="button" class="btn btn-primary btn-small" id="logoutBtn">${u.guest ? 'Увійти' : 'Вийти'}</button></div>`;
