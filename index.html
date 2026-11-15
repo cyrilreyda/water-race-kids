@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="theme-color" content="#16A3A0">
 <script src="/lock.js"></script>   <!-- замок «лише на уроці» з каталогу; у грі з архіву його немає, і вона відкривається як завжди -->
+<script src="/account.js"></script>   <!-- спільний акаунт учня з каталогу; без нього гра питає ім'я, як раніше -->
 <script src="rivers.js"></script>   <!-- довідки про траси й схеми -->
 <style>
   :root{
@@ -737,7 +738,7 @@
     <div class="prof-stats" id="profStats"></div>
     <h3>Швидкість по днях, знаків/хв</h3>
     <div class="speed-chart" id="profChart"></div>
-    <h3>Гравці на цьому пристрої</h3>
+    <h3 id="playersTitle">Гравці на цьому пристрої</h3>
     <div class="players" id="playerList"></div>
     <form class="field" id="addForm">
       <input id="addInput" maxlength="24" placeholder="Ім'я нового гравця" autocomplete="off">
@@ -1355,7 +1356,22 @@ const DEFAULT_SETTINGS = { lang:'uk', model:'rowboat', track:'dnipro', badge:'',
 const newProfile = () => ({ neurons:0, bests:{}, races:0, wins:0, comps:{}, runs:{}, stickers:{}, joined:null, since:today(), settings:{ ...DEFAULT_SETTINGS, colors:{} } });
 let store = { current:null, players:{} };
 try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s && s.players) store = s; }catch(e){}
-function saveStore(){ if(player) try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){} }
+// Спільний акаунт (/account.js каталогу): учень входить один раз для всіх ігор, прогрес іде за ним на інші пристрої.
+// Тоді в store лише він сам, а гравці, що грали тут до акаунта (legacy), можуть забрати свій прогрес при першому вході.
+// Швидкість друку (pace) — спільна з іншими перегонами: Account.shared(PACE_NAME)
+const ACC = window.Account;
+const PACE_NAME = BOOST ? 'pace-boost' : 'pace';
+const legacy = store;
+function saveStore(){
+  if(!player) return;
+  if(ACC){
+    const { pace, ...rest } = profile;
+    ACC.save(STORE_KEY, rest);
+    if(pace) ACC.setShared(PACE_NAME, pace);
+    return;
+  }
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
 
 let player = null;
 let profile = newProfile();
@@ -1370,6 +1386,7 @@ function loadPlayer(name){
   settings.colors = { ...settings.colors };   // власна копія кольорів у кожного гравця
   profile.runs ||= {};
   profile.stickers ||= {};
+  if(ACC){ const sp = ACC.shared(PACE_NAME); if(Object.keys(sp).length) profile.pace = sp; }
   if(!profile.pace) importPace(name);
   selComp = compById(profile.joined) ? profile.joined : null;
   saveStore();
@@ -2569,6 +2586,43 @@ document.getElementById('nameForm').addEventListener('submit', e=>{
 });
 document.getElementById('nameCancel').addEventListener('click', ()=>nameOverlay.classList.remove('show'));
 
+// Акаунт: учень увійшов. Якщо в цій грі в нього ще нічого немає, а на пристрої є гравці з часів до акаунта,
+// пропонуємо забрати свій прогрес (забраний гравець зникає зі списку, щоб його не забрав ще хтось)
+function enterAccount(){
+  const me = ACC.user.label, saved = ACC.get(STORE_KEY);
+  // Поля, яких бракує в збережених даних (новіша версія гри, неповний запис), — як у нового гравця, інакше заплив падає
+  const begin = p=>{ store = { current:me, players:{ [me]:{ ...newProfile(), ...p } } }; enterGame(me); };
+  const names = Object.keys(legacy.players);
+  if(saved || ACC.user.guest || !names.length){ begin(saved); return; }
+  nameRequired = true;
+  document.getElementById('nameTitle').textContent = 'Ти вже грав на цьому пристрої?';
+  nameOverlay.querySelector('.sub').textContent = 'Обери своє ім\'я, щоб забрати свої нейрончики, човни, рекорди й медалі.';
+  document.getElementById('nameForm').hidden = true;
+  document.getElementById('nameCancel').hidden = true;
+  const known = document.getElementById('knownPlayers');
+  known.innerHTML = names.map(n=>`<button type="button" class="chip-btn" data-n="${esc(n)}">👤 ${esc(n)}</button>`).join('') +
+    `<button type="button" class="btn btn-ghost btn-small" data-new style="width:100%">Ні, почати спочатку</button>`;
+  known.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click', ()=>{
+    const p = legacy.players[b.dataset.n];
+    delete legacy.players[b.dataset.n];
+    if(legacy.current === b.dataset.n) legacy.current = null;
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(legacy)); }catch(e){}
+    begin(p);
+  }));
+  known.querySelector('[data-new]').addEventListener('click', ()=>begin(null));
+  nameOverlay.classList.add('show');
+}
+// Дані змінилися з іншого пристрою (account.js уже звів їх із цими): підхоплюємо, не перериваючи гру
+ACC?.on('update', key=>{
+  if(!player) return;
+  if(key === STORE_KEY) Object.assign(profile, ACC.get(STORE_KEY));
+  else if(key === 'shared'){ const sp = ACC.shared(PACE_NAME); if(Object.keys(sp).length) profile.pace = sp; }
+  else return;
+  profile.settings = settings = { ...DEFAULT_SETTINGS, ...profile.settings };
+  renderHUD();
+  renderPlayerBtn();
+});
+
 function enterGame(name){
   if(location.hash) history.replaceState(null, '', location.pathname + location.search);
   loadPlayer(name);
@@ -2631,6 +2685,15 @@ function renderProfile(){
     `<span>наліпок <b>${Object.keys(profile.stickers).length}/${STICKERS.length}</b></span>`;
   renderSpeedChart(document.getElementById('profChart'), profile.hist || {});
   const list = document.getElementById('playerList');
+  if(ACC){
+    const u = ACC.user;
+    document.getElementById('playersTitle').textContent = 'Вхід';
+    document.getElementById('addForm').hidden = true;
+    list.innerHTML = `<div class="pl-row me">${miniBoat(profile)}<span class="pl-name">${esc(u.full)}<small>${u.guest ? 'граєш без входу: прогрес лише на цьому пристрої' : 'прогрес зберігається для всіх ігор і пристроїв'}</small></span>
+      <button type="button" class="btn btn-primary btn-small" id="logoutBtn">${u.guest ? 'Увійти' : 'Вийти'}</button></div>`;
+    document.getElementById('logoutBtn').addEventListener('click', ()=>ACC.logout());
+    return;
+  }
   const names = Object.keys(store.players).sort((a, b)=>a===player ? -1 : b===player ? 1 : a.localeCompare(b, 'uk'));
   list.innerHTML = names.map(n=>{
     const p = store.players[n], me = n === player;
@@ -2828,6 +2891,7 @@ function leaveShared(){
   startGame();
 }
 function startGame(){
+  if(ACC){ toSetup(); ACC.ready(enterAccount); return; }
   if(store.current && store.players[store.current]) enterGame(store.current);
   else { toSetup(); openNameModal(true); }
 }
